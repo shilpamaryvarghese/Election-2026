@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-from scraper import fetch_live_results
+from scraper import fetch_data
 from data_utils import process_data
 
 # Optional imports (avoid crash if missing)
