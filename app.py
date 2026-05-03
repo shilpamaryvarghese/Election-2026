@@ -35,7 +35,7 @@ def add_district(df):
     return df
 
 try:
-    raw_df = fetch_live_results()
+    raw_df = fetch_data()
 
     # 🚨 Handle empty
     if raw_df is None or raw_df.empty:
