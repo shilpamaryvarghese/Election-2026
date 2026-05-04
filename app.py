@@ -1,25 +1,97 @@
 from flask import Flask, render_template, jsonify
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
+import time
 
 app = Flask(__name__)
 
 CSV_FILE = "kerala_2026_candidates.csv"
-API_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
+BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/"
+STATE_URL = BASE_URL + "statewiseS111.htm"
+
+# 🔥 CACHE
+CACHE = {"data": None, "time": 0}
+CACHE_EXPIRY = 60   # seconds
 
 
-def load_data():
+# =========================
+# LOAD CSV
+# =========================
+def load_csv():
     df = pd.read_csv(CSV_FILE)
+    df["Constituency_Name"] = df["Constituency_Name"].str.strip()
     return df
 
 
-def get_live_data():
-    try:
-        return requests.get(API_URL, timeout=10).json()
-    except:
-        return []
+# =========================
+# GET LINKS
+# =========================
+def get_links():
+    res = requests.get(STATE_URL, headers={"User-Agent": "Mozilla/5.0"})
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    links = {}
+
+    for a in soup.find_all("a"):
+        name = a.text.strip()
+        href = a.get("href")
+
+        if href and "Constituencywise" in href:
+            links[name] = BASE_URL + href
+
+    return links
 
 
+# =========================
+# FETCH ALL CANDIDATES
+# =========================
+def fetch_all():
+
+    # 🔥 CACHE CHECK
+    if time.time() - CACHE["time"] < CACHE_EXPIRY:
+        return CACHE["data"]
+
+    links = get_links()
+    all_data = []
+
+    for name, url in links.items():
+
+        try:
+            res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            soup = BeautifulSoup(res.text, "html.parser")
+
+            table = soup.find("table")
+
+            for row in table.find_all("tr")[1:]:
+                cols = row.find_all("td")
+
+                if len(cols) >= 6:
+                    all_data.append({
+                        "Constituency": name,
+                        "Candidate": cols[0].text.strip(),
+                        "Party": cols[1].text.strip(),
+                        "EVM": cols[2].text.strip(),
+                        "Postal": cols[3].text.strip(),
+                        "Total": cols[4].text.strip(),
+                        "Percent": cols[5].text.strip()
+                    })
+
+        except Exception as e:
+            print("Error:", name, e)
+
+        time.sleep(0.1)
+
+    # SAVE CACHE
+    CACHE["data"] = all_data
+    CACHE["time"] = time.time()
+
+    return all_data
+
+
+# =========================
+# ROUTES
+# =========================
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -30,108 +102,18 @@ def dashboard():
     return render_template("dashboard.html")
 
 
-@app.route("/constituency")
-def constituency_page():
-    return render_template("constituency.html")
+@app.route("/api/results")
+def results():
+    try:
+        data = fetch_all()
+        return jsonify({"data": data})
+    except Exception as e:
+        print(e)
+        return jsonify({"data": []})
 
 
-@app.route("/partywise")
-def partywise_page():
-    return render_template("partywise.html")
-
-
-@app.route("/candidates")
-def candidates_page():
-    return render_template("candidates.html")
-
-
-# ---------------- APIs ----------------
-
-@app.route("/api/constituencies")
-def constituencies():
-    df = load_data()
-    return jsonify({
-        "data": sorted(df["Constituency_Name"].unique())
-    })
-
-
-@app.route("/api/constituency/<name>")
-def constituency(name):
-
-    df = load_data()
-    df = df[df["Constituency_Name"] == name]
-
-    live = get_live_data()
-
-    if live:
-        live_df = pd.DataFrame(live)
-
-        merged = pd.merge(
-            df,
-            live_df,
-            left_on="Candidate_Name",
-            right_on="candidate",
-            how="left"
-        )
-
-        merged["votes"] = merged["votes"].fillna(0)
-        merged["status"] = merged["status"].fillna("NA")
-
-        return jsonify({"data": merged.to_dict(orient="records")})
-
-    else:
-        df["votes"] = 0
-        df["status"] = "Dummy"
-        return jsonify({"data": df.to_dict(orient="records")})
-
-
-@app.route("/api/summary")
-def summary():
-
-    live = get_live_data()
-    df = pd.DataFrame(live)
-
-    def alliance(p):
-        p = str(p).upper()
-        if p in ["INC","IUML"]: return "UDF"
-        if p in ["CPIM","CPI"]: return "LDF"
-        if p in ["BJP"]: return "NDA"
-        return "Others"
-
-    df["Alliance"] = df["party"].apply(alliance)
-
-    summary = df.groupby("Alliance").agg(
-        Seats=("status", lambda x: (x.str.lower()=="won").sum()),
-        Votes=("votes","sum")
-    ).reset_index()
-
-    return jsonify({"data": summary.to_dict(orient="records")})
-
-
-@app.route("/api/partywise")
-def partywise():
-    live = get_live_data()
-    df = pd.DataFrame(live)
-
-    df["party"] = df["party"].str.upper()
-
-    summary = df.groupby("party").agg(
-        Seats=("status", lambda x: (x.str.lower()=="won").sum()),
-        Votes=("votes","sum")
-    ).reset_index()
-
-    return jsonify({"data": summary.to_dict(orient="records")})
-
-
-@app.route("/api/search/<query>")
-def search(query):
-    live = get_live_data()
-    df = pd.DataFrame(live)
-
-    df = df[df["candidate"].str.lower().str.contains(query.lower())]
-
-    return jsonify({"data": df.to_dict(orient="records")})
-
-
+# =========================
+# RUN
+# =========================
 if __name__ == "__main__":
     app.run(debug=True)
