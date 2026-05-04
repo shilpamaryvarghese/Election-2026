@@ -4,18 +4,25 @@
 <title>Election Dashboard</title>
 
 <link rel="stylesheet" href="/static/style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
 
 </head>
 
 <body>
 
-<!-- DARK MODE TOGGLE -->
+<!-- DARK MODE -->
 <div class="toggle" onclick="toggleDark()">🌙</div>
 
 <!-- HEADER -->
 <div class="header">
     Kerala Election Results 2026
+</div>
+
+<!-- 🔴 LIVE TICKER -->
+<div class="ticker">
+    <div id="tickerText">Loading live updates...</div>
 </div>
 
 <!-- SUMMARY -->
@@ -28,12 +35,12 @@
 
 <div class="container">
 
-    <!-- LEFT SIDE -->
+    <!-- LEFT -->
     <div class="left">
         <canvas id="barChart"></canvas>
     </div>
 
-    <!-- RIGHT SIDE -->
+    <!-- RIGHT -->
     <div class="right">
 
         <input id="search" placeholder="Search constituency...">
@@ -52,7 +59,13 @@
 
 <script>
 
-// 🔥 SMOOTH COUNT ANIMATION
+// 🌙 DARK MODE
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
+
+
+// 🔢 ANIMATION
 function animateValue(id, start, end, duration) {
     let obj = document.getElementById(id);
     let range = end - start;
@@ -68,13 +81,7 @@ function animateValue(id, start, end, duration) {
 }
 
 
-// 🌙 DARK MODE
-function toggleDark(){
-    document.body.classList.toggle("dark");
-}
-
-
-// 📊 LOAD SUMMARY
+// 📊 SUMMARY
 async function loadSummary(){
     let res = await fetch("/api/summary");
     let json = await res.json();
@@ -88,10 +95,10 @@ async function loadSummary(){
         if(d.Alliance==="Others") oth=d.Seats;
     });
 
-    animateValue("udf", parseInt(document.getElementById("udf").innerText)||0, udf, 800);
-    animateValue("ldf", parseInt(document.getElementById("ldf").innerText)||0, ldf, 800);
-    animateValue("nda", parseInt(document.getElementById("nda").innerText)||0, nda, 800);
-    animateValue("oth", parseInt(document.getElementById("oth").innerText)||0, oth, 800);
+    animateValue("udf", parseInt(udf)||0, udf, 800);
+    animateValue("ldf", parseInt(ldf)||0, ldf, 800);
+    animateValue("nda", parseInt(nda)||0, nda, 800);
+    animateValue("oth", parseInt(oth)||0, oth, 800);
 
     loadChart(json.data);
 }
@@ -116,7 +123,22 @@ function loadChart(data){
 }
 
 
-// 📍 LOAD CONSTITUENCIES
+// 🔴 TICKER
+async function loadTicker(){
+    let res = await fetch("/api/summary");
+    let json = await res.json();
+
+    let text = "";
+
+    json.data.forEach(d=>{
+        text += `${d.Alliance}: ${d.Seats} seats | `;
+    });
+
+    document.getElementById("tickerText").innerText = text;
+}
+
+
+// 📍 CONSTITUENCIES
 async function loadConstituencies(){
     let res = await fetch("/api/constituencies");
     let json = await res.json();
@@ -137,7 +159,6 @@ async function loadData(){
 
     let div = document.getElementById("results");
 
-    // ⏳ LOADING
     div.innerHTML = `<div class="loader"></div>`;
 
     let res = await fetch("/api/constituency/"+name);
@@ -145,11 +166,11 @@ async function loadData(){
 
     div.innerHTML = "";
 
-    let maxVotes = Math.max(...json.data.map(r => Number(r.votes)));
+    let totalVotes = json.data.reduce((sum,r)=>sum+Number(r.votes),0);
 
     json.data.forEach(r => {
 
-        let percent = maxVotes ? (r.votes / maxVotes) * 100 : 0;
+        let percent = totalVotes ? (r.votes / totalVotes) * 100 : 0;
 
         let isWinner = (r.status || "").toLowerCase() === "won";
 
@@ -157,7 +178,7 @@ async function loadData(){
         <div class="result ${isWinner ? "winner" : ""}">
             <b>${r.Candidate_Name}</b><br>
             ${r.Party}<br>
-            Votes: ${r.votes}<br>
+            Votes: ${r.votes} (${percent.toFixed(1)}%)<br>
             Status: ${r.status}
 
             <div class="bar" style="width:${percent}%"></div>
@@ -166,7 +187,7 @@ async function loadData(){
 }
 
 
-// 🔍 SEARCH FILTER
+// 🔍 SEARCH
 document.getElementById("search").addEventListener("keyup", function(){
     let val = this.value.toLowerCase();
     let options = document.querySelectorAll("#select option");
@@ -177,12 +198,48 @@ document.getElementById("search").addEventListener("keyup", function(){
 });
 
 
-// 🔄 AUTO REFRESH
+// 🔔 WINNER ALERT
+let announced = {};
+
+async function checkWinners(){
+
+    let res = await fetch("/api/summary");
+    let json = await res.json();
+
+    json.data.forEach(d=>{
+
+        if(d.Seats > (announced[d.Alliance] || 0)){
+
+            announced[d.Alliance] = d.Seats;
+
+            let audio = new Audio("https://www.soundjay.com/buttons/beep-07.mp3");
+            audio.play();
+
+            alert(`${d.Alliance} gained a seat! Total: ${d.Seats}`);
+        }
+    });
+}
+
+
+// ⚡ WEBSOCKET
+const socket = io();
+
+socket.on("update", function(data){
+    console.log("Live update");
+    loadSummary();
+    loadTicker();
+});
+
+
+// 🔄 AUTO REFRESH (fallback)
 setInterval(loadSummary, 10000);
+setInterval(loadTicker, 10000);
+setInterval(checkWinners, 10000);
 
 
 // 🚀 INIT
 loadSummary();
+loadTicker();
 loadConstituencies();
 
 </script>
