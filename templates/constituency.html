@@ -1,42 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Dashboard</title>
+<title>Constituency Result</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body { font-family:Arial; padding:20px; }
-canvas { max-width:400px; margin:20px; }
+body { font-family: Arial; padding:20px; }
+
+select {
+    padding:10px;
+    margin-bottom:20px;
+}
+
+table {
+    width:100%;
+    border-collapse: collapse;
+}
+
+th {
+    background:#0b3d91;
+    color:white;
+}
+
+td,th {
+    padding:8px;
+    border:1px solid #ddd;
+}
+
 </style>
+
 </head>
 
 <body>
 
-<h2>Dashboard</h2>
+<h2>Constituency Results</h2>
 
-<canvas id="barChart"></canvas>
-<canvas id="pieChart"></canvas>
+<select id="dropdown"></select>
+
+<canvas id="chart" height="100"></canvas>
+
+<table>
+<thead>
+<tr>
+<th>Candidate</th>
+<th>Party</th>
+<th>Total Votes</th>
+<th>%</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
+</table>
 
 <script>
-async function loadCharts(){
 
-    let res = await fetch("/api/summary");
+// LOAD DROPDOWN
+async function loadDropdown(){
+
+    let res = await fetch("/api/results");
     let json = await res.json();
 
-    let labels = json.data.map(d=>d.Alliance);
-    let seats = json.data.map(d=>d.Seats);
+    let names = [...new Set(json.data.map(d=>d.Constituency))];
 
-    new Chart(document.getElementById("barChart"), {
-        type:'bar',
-        data:{ labels:labels, datasets:[{ data:seats }] }
-    });
+    let dd = document.getElementById("dropdown");
 
-    new Chart(document.getElementById("pieChart"), {
-        type:'pie',
-        data:{ labels:labels, datasets:[{ data:seats }] }
+    dd.innerHTML = `<option>Select Constituency</option>`;
+
+    names.forEach(n=>{
+        dd.innerHTML += `<option value="${n}">${n}</option>`;
     });
 }
 
-loadCharts();
+let chart;
+
+// LOAD CONSTITUENCY DATA
+async function loadData(name){
+
+    let res = await fetch("/api/constituency/" + name);
+    let json = await res.json();
+
+    let tbody = document.getElementById("body");
+    tbody.innerHTML = "";
+
+    let labels = [];
+    let votes = [];
+
+    json.data.forEach(r=>{
+
+        labels.push(r.Candidate);
+        votes.push(r.Total);
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${r.Candidate}</td>
+            <td>${r.Party}</td>
+            <td>${r.Total}</td>
+            <td>${r.Percent}</td>
+        </tr>`;
+    });
+
+    // DRAW CHART
+    if(chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("chart"), {
+        type:'bar',
+        data:{
+            labels:labels,
+            datasets:[{ data:votes }]
+        }
+    });
+}
+
+// EVENT
+document.getElementById("dropdown").addEventListener("change", function(){
+    let val = this.value;
+    if(val !== "Select Constituency"){
+        loadData(val);
+    }
+});
+
+loadDropdown();
+
 </script>
 
 </body>
