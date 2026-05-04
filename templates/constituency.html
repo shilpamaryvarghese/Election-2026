@@ -1,0 +1,32 @@
+<h2>Constituency: {{name}}</h2>
+
+<table border="1">
+<thead>
+<tr>
+<th>Candidate</th><th>Party</th><th>Status</th>
+</tr>
+</thead>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+async function load(){
+    let name = "{{name}}";
+
+    let res = await fetch(`/api/constituency/${name}`);
+    let json = await res.json();
+
+    let tbody = document.getElementById("data");
+
+    json.data.forEach(r=>{
+        tbody.innerHTML += `
+        <tr>
+        <td>${r.Candidate_Name}</td>
+        <td>${r.Party}</td>
+        <td>${r.Status}</td>
+        </tr>`;
+    });
+}
+
+load();
+</script>
