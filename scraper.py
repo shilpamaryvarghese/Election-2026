@@ -1,44 +1,43 @@
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-import random
 
-URL = "https://results.eci.gov.in/"
+MAIN_API = "https://edata.ndtv.com/feeds/elex/2026/electionswidget2026.json"
+WINNER_API = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
 
 def fetch_data():
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        page = requests.get(URL, headers=headers, timeout=10)
 
-        soup = BeautifulSoup(page.text, "html.parser")
+        main_res = requests.get(MAIN_API, headers=headers).json()
+        winner_res = requests.get(WINNER_API, headers=headers).json()
 
-        rows = soup.find_all("tr")
+        main_data = main_res.get("data", main_res)
+        winner_data = winner_res.get("data", winner_res)
 
-        data = []
-        for row in rows:
-            cols = [c.text.strip() for c in row.find_all("td")]
-            if len(cols) >= 4:
-                data.append(cols[:4])
+        winner_map = {}
+        for w in winner_data:
+            constituency = w.get("constituency") or w.get("seat")
+            winner_map[constituency] = {
+                "Candidate": w.get("candidate"),
+                "Party": w.get("party")
+            }
 
-        if not data:
-            raise Exception("No data found")
+        records = []
 
-        df = pd.DataFrame(data, columns=[
-            "Constituency", "Candidate", "Party", "Votes"
-        ])
+        for item in main_data:
+            constituency = item.get("constituency") or item.get("seat")
 
-        return df
+            records.append({
+                "Constituency": constituency,
+                "Candidate": winner_map.get(constituency, {}).get("Candidate", "N/A"),
+                "Party": winner_map.get(constituency, {}).get("Party", "N/A"),
+                "Votes": item.get("votes") or item.get("total_votes", 0)
+            })
 
-    except Exception:
-        # fallback dummy data
-        constituencies = [f"Seat {i}" for i in range(1, 141)]
-        parties = ["LDF", "UDF", "NDA", "Others"]
-
-        df = pd.DataFrame({
-            "Constituency": constituencies,
-            "Candidate": ["Candidate"] * 140,
-            "Party": [random.choice(parties) for _ in range(140)],
-            "Votes": [random.randint(1000, 50000) for _ in range(140)]
-        })
+        df = pd.DataFrame(records)
+        df["Constituency"] = df["Constituency"].astype(str).str.strip()
 
         return df
+
+    except:
+        return pd.DataFrame()
