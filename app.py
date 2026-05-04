@@ -40,35 +40,38 @@ df, winners, seat_count = process_data(raw_df)
 
 df["District"] = df["Constituency"].map(KERALA_MAP)
 
-st.sidebar.header("Filters")
+st.sidebar.header("🔍 Filters")
 
 districts = ["All"] + sorted(df["District"].dropna().unique().tolist())
-constituencies = ["All"] + sorted(df["Constituency"].unique().tolist())
-parties = ["All"] + sorted(df["Party"].unique().tolist())
-
 selected_district = st.sidebar.selectbox("District", districts)
-selected_constituency = st.sidebar.selectbox("Constituency", constituencies)
-selected_party = st.sidebar.selectbox("Party", parties)
 
 filtered_df = df.copy()
 
 if selected_district != "All":
     filtered_df = filtered_df[filtered_df["District"] == selected_district]
 
-if selected_constituency != "All":
-    filtered_df = filtered_df[filtered_df["Constituency"] == selected_constituency]
+parties = ["All"] + sorted(filtered_df["Party"].dropna().unique().tolist())
+selected_party = st.sidebar.selectbox("Party", parties)
 
 if selected_party != "All":
     filtered_df = filtered_df[filtered_df["Party"] == selected_party]
+
+constituencies = ["All"] + sorted(filtered_df["Constituency"].dropna().unique().tolist())
+selected_constituency = st.sidebar.selectbox("Constituency", constituencies)
+
+if selected_constituency != "All":
+    filtered_df = filtered_df[filtered_df["Constituency"] == selected_constituency]
 
 st.caption(f"Last Updated: {time.strftime('%H:%M:%S')}")
 
 st.subheader("Key Insights")
 
-st.success(f"Leading Party: {seat_count.idxmax()}")
+if not seat_count.empty:
+    st.success(f"Leading Party: {seat_count.idxmax()}")
 
-top_candidate = winners.loc[winners["Votes"].idxmax()]
-st.info(f"Top Candidate: {top_candidate['Candidate']} ({top_candidate['Votes']} votes)")
+if not winners.empty:
+    top_candidate = winners.loc[winners["Votes"].idxmax()]
+    st.info(f"Top Candidate: {top_candidate['Candidate']} ({top_candidate['Votes']} votes)")
 
 st.subheader("Seat Distribution")
 fig1 = px.pie(values=seat_count.values, names=seat_count.index)
