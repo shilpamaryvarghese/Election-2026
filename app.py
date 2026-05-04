@@ -31,7 +31,12 @@ def load_data():
 def get_constituency_links():
     try:
         url = BASE_URL + "index.htm"
-        res = requests.get(url, timeout=5)
+
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        res = requests.get(url, headers=headers, timeout=10)
 
         soup = BeautifulSoup(res.text, "html.parser")
 
@@ -65,7 +70,11 @@ def fetch_constituency_data(constituency_name):
 
         url = BASE_URL + page
 
-        res = requests.get(url, timeout=5)
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
+
+        res = requests.get(url, headers=headers, timeout=10)
 
         if res.status_code != 200:
             return None
@@ -130,7 +139,12 @@ def constituency_page(name):
     return render_template("constituency.html", name=name)
 
 
-# ---------------- API ----------------
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
+
+
+# ---------------- API: CONSTITUENCY ----------------
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
     df = load_data()
@@ -143,7 +157,7 @@ def api_constituency(name):
     if live_data:
         live_df = pd.DataFrame(live_data)
 
-        # normalize again (safety)
+        # normalize again
         live_df["Candidate_Name"] = live_df["Candidate_Name"].astype(str).str.strip().str.lower()
         live_df["Party"] = live_df["Party"].astype(str).str.strip().str.lower()
 
@@ -170,6 +184,44 @@ def api_constituency(name):
             "dummy": True,
             "data": df.to_dict(orient="records")
         })
+
+
+# ---------------- API: PARTY SUMMARY ----------------
+@app.route("/api/party-summary")
+def party_summary():
+    df = load_data()
+
+    all_data = []
+
+    constituencies = df["Constituency_Name"].unique()
+
+    for c in constituencies:
+        live = get_cached_data(c)
+
+        if live:
+            for r in live:
+                all_data.append(r)
+
+    if not all_data:
+        return jsonify({"dummy": True, "data": []})
+
+    live_df = pd.DataFrame(all_data)
+
+    # normalize
+    live_df["Party"] = live_df["Party"].str.strip().str.upper()
+    live_df["Status"] = live_df["Status"].str.lower()
+
+    summary = live_df.groupby("Party").agg(
+        Won=("Status", lambda x: (x == "won").sum()),
+        Leading=("Status", lambda x: (x == "leading").sum())
+    ).reset_index()
+
+    summary["Total"] = summary["Won"] + summary["Leading"]
+
+    return jsonify({
+        "dummy": False,
+        "data": summary.to_dict(orient="records")
+    })
 
 
 # ---------------- RUN ----------------
