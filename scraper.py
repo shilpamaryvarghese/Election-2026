@@ -3,34 +3,25 @@ import pandas as pd
 
 URL = "https://data.ndtv.com/elections/2026/WinnerCandidates_VS_KER.json"
 
-def fetch_ndtv_results():
+def fetch_data():
     try:
         res = requests.get(URL, timeout=10)
         data = res.json()
 
-        results = []
+        rows = []
 
         for item in data:
-            constituency = item.get("constituency_name")
-            candidate = item.get("candidate_name")
-            party = item.get("party_name")
-            status = item.get("status")  # Leading / Won
-
-            results.append({
-                "Constituency": constituency,
-                "Candidate": candidate,
-                "Party": party,
-                "Status": status
+            rows.append({
+                "Constituency": item.get("constituency_name"),
+                "Candidate": item.get("candidate_name"),
+                "Party": item.get("party_name"),
+                "Votes": item.get("votes", 0), 
+                "Status": item.get("status", "Won")
             })
 
-        df = pd.DataFrame(results)
+        df = pd.DataFrame(rows)
         return df
 
     except Exception as e:
-        print("Error:", e)
+        print("Error fetching NDTV data:", e)
         return pd.DataFrame()
-
-
-if __name__ == "__main__":
-    df = fetch_ndtv_results()
-    print(df.head())
