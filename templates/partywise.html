@@ -2,34 +2,62 @@
 <html>
 <head>
 <title>Party Wise</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
-<h2>Party Wise</h2>
+<h2>Party Wise Results</h2>
 
-<table border="1">
-<tr><th>Party</th><th>Seats</th><th>Votes</th></tr>
-<tbody id="table"></tbody>
+<canvas id="pie"></canvas>
+
+<table>
+<thead>
+<tr>
+<th>Party</th>
+<th>Seats</th>
+<th>Votes</th>
+</tr>
+</thead>
+<tbody id="body"></tbody>
 </table>
 
 <script>
+
 async function load(){
+
     let res = await fetch("/api/partywise");
     let json = await res.json();
 
-    let t = document.getElementById("table");
+    let labels = [];
+    let seats = [];
 
-    json.data.forEach(d=>{
-        t.innerHTML += `<tr>
-        <td>${d.party}</td>
-        <td>${d.Seats}</td>
-        <td>${d.Votes}</td>
+    let tbody = document.getElementById("body");
+    tbody.innerHTML = "";
+
+    json.data.forEach(p=>{
+        labels.push(p.party);
+        seats.push(p.seats);
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${p.party}</td>
+            <td>${p.seats}</td>
+            <td>${p.votes}</td>
         </tr>`;
+    });
+
+    new Chart(document.getElementById("pie"), {
+        type:'pie',
+        data:{
+            labels:labels,
+            datasets:[{ data:seats }]
+        }
     });
 }
 
 load();
+
 </script>
 
 </body>
