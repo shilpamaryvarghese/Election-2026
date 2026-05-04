@@ -108,16 +108,20 @@ def api_constituency(name):
 # ---------------- API: CONSTITUENCIES LIST ----------------
 @app.route("/api/constituencies")
 def get_constituencies():
-    data = get_data()
+    try:
+        df = pd.read_csv("kerala_2026_candidates.csv")
 
-    if not data:
+        df["Constituency_Name"] = df["Constituency_Name"].astype(str).str.strip()
+
+        constituencies = sorted(df["Constituency_Name"].dropna().unique())
+
+        return jsonify({
+            "data": constituencies
+        })
+
+    except Exception as e:
+        print("CSV Error:", e)
         return jsonify({"data": []})
-
-    df = pd.DataFrame(data)
-
-    return jsonify({
-        "data": sorted(df["constituency"].dropna().unique())
-    })
 
 
 # ---------------- API: HIT COUNTER ----------------
