@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="header">
+    <h1>Kerala Election Live Results</h1>
+</div>
+
+<div class="container">
+
+<h2>Party Seat Count</h2>
+
+<div id="cards" style="display:flex; flex-wrap:wrap;"></div>
+
+<canvas id="chart" height="100"></canvas>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+async function load(){
+    let res = await fetch("/api/party-summary");
+    let json = await res.json();
+
+    let cards = document.getElementById("cards");
+    cards.innerHTML = "";
+
+    let labels = [];
+    let values = [];
+
+    json.data.forEach(p=>{
+        cards.innerHTML += `
+        <div style="background:#1f3c88;color:white;padding:15px;margin:10px;border-radius:8px;">
+            <h3>${p.Party}</h3>
+            <p>Total: ${p.Total}</p>
+            <p>Won: ${p.Won}</p>
+            <p>Leading: ${p.Leading}</p>
+        </div>
+        `;
+
+        labels.push(p.Party);
+        values.push(p.Total);
+    });
+
+    drawChart(labels, values);
+}
+
+let chart;
+
+function drawChart(labels, values){
+    if(chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("chart"), {
+        type: "doughnut",
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values
+            }]
+        }
+    });
+}
+
+setInterval(load, 15000);
+load();
+</script>
+
+</body>
+</html>
