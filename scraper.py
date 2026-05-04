@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import random
 
-URL = "https://results.eci.gov.in/"
+URL = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
 
 def fetch_data():
     try:
