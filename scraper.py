@@ -2,7 +2,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-URL = "https://results.eci.gov.in/"
+URL = "https://results.eci.gov.in/ResultAcGenMay2026/election-json-S11-live.json"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
