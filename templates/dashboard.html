@@ -1,101 +1,260 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kerala Election Result</title>
+<title>Kerala Election Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial; text-align:center; }
+body {
+    font-family: Arial;
+    background:#f4f6fb;
+    margin:0;
+}
+
+/* HEADER */
+.header {
+    text-align:center;
+    padding:20px;
+}
+
+.header h1 {
+    font-size:24px;
+}
+
+.header h2 {
+    color:#1f5ca8;
+}
+
+.underline {
+    width:120px;
+    height:4px;
+    background:green;
+    margin:auto;
+}
+
+/* PARTY CARDS */
+.cards {
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:15px;
+    margin:20px;
+}
 
 .card {
-    display:inline-block;
+    width:150px;
     padding:20px;
-    margin:10px;
     border-radius:10px;
     color:white;
-    width:120px;
+    text-align:center;
+    font-weight:bold;
 }
 
-.ldf { background:red; }
-.udf { background:blue; }
-.nda { background:orange; }
-.others { background:gray; }
+.inc { background:#2fa4d6; }
+.cpim { background:#ff1a1a; }
+.iuml { background:green; }
+.cpi { background:#e60023; }
+.kec { background:#d870d6; }
+.rsp { background:#4b2e83; }
+.other { background:#9c9c6b; }
 
-#spinner {
-    display:inline-block;
-    animation: spin 1s linear infinite;
+/* MAIN GRID */
+.container {
+    display:flex;
+    gap:20px;
+    margin:20px;
 }
 
-@keyframes spin {
-    from {transform: rotate(0deg);}
-    to {transform: rotate(360deg);}
+/* TABLE */
+.box {
+    flex:1;
+    background:white;
+    border-radius:8px;
+    overflow:hidden;
 }
 
-svg path {
-    fill:#ccc;
-    stroke:black;
-    cursor:pointer;
+.box-header {
+    background:#b5a7d6;
+    padding:10px;
+    font-weight:bold;
 }
-svg path:hover {
-    fill:yellow;
+
+table {
+    width:100%;
+    border-collapse:collapse;
+}
+
+th, td {
+    padding:10px;
+    border-bottom:1px solid #ddd;
+}
+
+th {
+    text-align:left;
+}
+
+/* MAP SECTION */
+.map-box {
+    flex:1;
+    background:white;
+    border-radius:8px;
+}
+
+.map-header {
+    background:#b5a7d6;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
+}
+
+select {
+    padding:5px;
+}
+
+/* STATUS */
+#status {
+    text-align:center;
+    margin:10px;
+    font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Kerala Election 2026</h1>
+<!-- HEADER -->
+<div class="header">
+    <h1>General Election to Assembly Constituencies: Trends & Results May-2026</h1>
+    <h2>Kerala (Total AC : 140)</h2>
+    <div class="underline"></div>
+</div>
 
-<div id="status">Loading <span id="spinner">🔄</span></div>
+<!-- STATUS -->
+<div id="status">Loading...</div>
 
-<!-- ALLIANCE -->
-<div id="alliances"></div>
+<!-- PARTY CARDS -->
+<div class="cards" id="cards"></div>
 
-<h2>Click District</h2>
+<!-- MAIN SECTION -->
+<div class="container">
 
-<!-- SIMPLE MAP -->
-<svg viewBox="0 0 200 400" width="300">
+    <!-- TABLE -->
+    <div class="box">
+        <div class="box-header">Party Wise Results</div>
 
-<path id="Kasargod" d="M10,10 L100,10 L100,50 L10,50 Z"/>
-<path id="Kannur" d="M10,60 L100,60 L100,100 L10,100 Z"/>
-<path id="Kozhikode" d="M10,110 L100,110 L100,150 L10,150 Z"/>
-<path id="Malappuram" d="M10,160 L100,160 L100,200 L10,200 Z"/>
+        <table>
+            <thead>
+                <tr>
+                    <th>Party</th>
+                    <th>Won</th>
+                    <th>Leading</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="tableData"></tbody>
+        </table>
+    </div>
 
-</svg>
+    <!-- MAP -->
+    <div class="map-box">
+        <div class="map-header">
+            <span>Constituency Wise Results</span>
+
+            <select id="constituencySelect" onchange="goToConstituency()">
+                <option>Select Constituency</option>
+            </select>
+        </div>
+
+        <div style="padding:20px; text-align:center;">
+            <p>🗺️ Kerala Map (Add later)</p>
+        </div>
+    </div>
+
+</div>
 
 <script>
 
+// LOAD DATA
 async function load(){
-    document.getElementById("status").innerHTML = "Updating 🔄";
-
-    let res = await fetch("/api/alliance");
+    let res = await fetch("/api/party-summary");
     let json = await res.json();
 
-    let div = document.getElementById("alliances");
-    div.innerHTML = "";
+    let cards = document.getElementById("cards");
+    let table = document.getElementById("tableData");
+    let status = document.getElementById("status");
 
-    json.data.forEach(a=>{
-        let cls = a.Alliance.toLowerCase();
+    cards.innerHTML = "";
+    table.innerHTML = "";
 
-        div.innerHTML += `
+    if(!json.data || json.data.length === 0){
+        status.innerText = "No Data";
+        return;
+    }
+
+    status.innerText = json.dummy ? "Dummy Data" : "Live Data";
+
+    json.data.forEach(p=>{
+
+        let cls = "other";
+
+        if(p.Party.includes("INC")) cls="inc";
+        else if(p.Party.includes("CPIM")) cls="cpim";
+        else if(p.Party.includes("IUML")) cls="iuml";
+        else if(p.Party.includes("CPI")) cls="cpi";
+        else if(p.Party.includes("KEC")) cls="kec";
+        else if(p.Party.includes("RSP")) cls="rsp";
+
+        // CARDS
+        cards.innerHTML += `
         <div class="card ${cls}">
-            <h3>${a.Alliance}</h3>
-            <h1>${a.Total}</h1>
+            ${p.Party}
+            <h1>${p.Total}</h1>
         </div>
         `;
-    });
 
-    document.getElementById("status").innerHTML = "Live Updated ✅";
+        // TABLE
+        table.innerHTML += `
+        <tr>
+            <td>${p.Party}</td>
+            <td>${p.Won}</td>
+            <td style="color:blue;">${p.Leading}</td>
+            <td>${p.Total}</td>
+        </tr>
+        `;
+    });
 }
 
-// MAP CLICK
-document.querySelectorAll("svg path").forEach(p=>{
-    p.onclick = ()=>{
-        window.location = "/constituency/" + p.id;
-    };
-});
 
-load();
+// LOAD CONSTITUENCIES
+async function loadConstituencies(){
+    let res = await fetch("/api/constituencies");
+    let json = await res.json();
+
+    let select = document.getElementById("constituencySelect");
+
+    json.data.forEach(c=>{
+        select.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+}
+
+
+// NAVIGATION
+function goToConstituency(){
+    let name = document.getElementById("constituencySelect").value;
+
+    if(name){
+        window.location = "/constituency/" + encodeURIComponent(name);
+    }
+}
+
+
+// AUTO REFRESH
 setInterval(load, 10000);
+
+// INIT
+load();
+loadConstituencies();
 
 </script>
 
