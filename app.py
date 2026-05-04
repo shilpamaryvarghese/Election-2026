@@ -144,6 +144,16 @@ def results():
     return jsonify({"data": fetch_all()})
 
 
+@app.route("/api/constituency/<name>")
+def constituency(name):
+
+    data = fetch_all()
+
+    result = [d for d in data if d["Constituency"].lower() == name.lower()]
+
+    return jsonify({"data": result})
+
+
 @app.route("/api/partywise")
 def partywise_api():
 
