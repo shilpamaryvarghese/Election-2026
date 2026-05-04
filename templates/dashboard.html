@@ -3,116 +3,27 @@
 <head>
 <title>Kerala Election Dashboard</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-body {
-    font-family: Arial;
-    background:#f4f6fb;
-    margin:0;
-}
+body { font-family: Arial; background:#f4f6fb; }
 
-/* HEADER */
-.header {
-    text-align:center;
-    padding:20px;
-}
+.container { width:90%; margin:auto; }
 
-.header h1 {
-    font-size:24px;
-}
-
-.header h2 {
-    color:#1f5ca8;
-}
-
-.underline {
-    width:120px;
-    height:4px;
-    background:green;
-    margin:auto;
-}
-
-/* PARTY CARDS */
-.cards {
-    display:flex;
-    justify-content:center;
-    flex-wrap:wrap;
-    gap:15px;
-    margin:20px;
-}
-
-.card {
-    width:150px;
-    padding:20px;
-    border-radius:10px;
-    color:white;
-    text-align:center;
-    font-weight:bold;
-}
-
-.inc { background:#2fa4d6; }
-.cpim { background:#ff1a1a; }
-.iuml { background:green; }
-.cpi { background:#e60023; }
-.kec { background:#d870d6; }
-.rsp { background:#4b2e83; }
-.other { background:#9c9c6b; }
-
-/* MAIN GRID */
-.container {
-    display:flex;
-    gap:20px;
-    margin:20px;
-}
-
-/* TABLE */
-.box {
-    flex:1;
-    background:white;
-    border-radius:8px;
-    overflow:hidden;
-}
-
-.box-header {
-    background:#b5a7d6;
-    padding:10px;
-    font-weight:bold;
-}
+select { padding:8px; }
 
 table {
     width:100%;
     border-collapse:collapse;
+    margin-top:20px;
 }
 
 th, td {
     padding:10px;
-    border-bottom:1px solid #ddd;
+    border:1px solid #ddd;
+    text-align:center;
 }
 
-th {
-    text-align:left;
-}
+th { background:#ddd; }
 
-/* MAP SECTION */
-.map-box {
-    flex:1;
-    background:white;
-    border-radius:8px;
-}
-
-.map-header {
-    background:#b5a7d6;
-    padding:10px;
-    display:flex;
-    justify-content:space-between;
-}
-
-select {
-    padding:5px;
-}
-
-/* STATUS */
 #status {
     text-align:center;
     margin:10px;
@@ -123,110 +34,41 @@ select {
 
 <body>
 
-<!-- HEADER -->
-<div class="header">
-    <h1>General Election to Assembly Constituencies: Trends & Results May-2026</h1>
-    <h2>Kerala (Total AC : 140)</h2>
-    <div class="underline"></div>
-</div>
-
-<!-- STATUS -->
-<div id="status">Loading...</div>
-
-<!-- PARTY CARDS -->
-<div class="cards" id="cards"></div>
-
-<!-- MAIN SECTION -->
 <div class="container">
 
-    <!-- TABLE -->
-    <div class="box">
-        <div class="box-header">Party Wise Results</div>
+<h1 style="text-align:center;">Kerala Election Dashboard</h1>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Party</th>
-                    <th>Won</th>
-                    <th>Leading</th>
-                    <th>Total</th>
-                </tr>
-            </thead>
-            <tbody id="tableData"></tbody>
-        </table>
-    </div>
+<div id="status">Loading...</div>
 
-    <!-- MAP -->
-    <div class="map-box">
-        <div class="map-header">
-            <span>Constituency Wise Results</span>
+<!-- DROPDOWN -->
+<div style="text-align:center;">
+    <select id="constituencySelect" onchange="loadConstituencyData()">
+        <option value="">Select Constituency</option>
+    </select>
+</div>
 
-            <select id="constituencySelect" onchange="goToConstituency()">
-                <option>Select Constituency</option>
-            </select>
-        </div>
+<!-- RESULT TABLE -->
+<h3 style="text-align:center;">Constituency Wise Results</h3>
 
-        <div style="padding:20px; text-align:center;">
-            <p>🗺️ Kerala Map (Add later)</p>
-        </div>
-    </div>
+<table>
+<thead>
+<tr>
+<th>Candidate</th>
+<th>Party</th>
+<th>Votes</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="constituencyTable"></tbody>
+</table>
 
 </div>
 
 <script>
 
-// LOAD DATA
-async function load(){
-    let res = await fetch("/api/party-summary");
-    let json = await res.json();
+let currentConstituency = "";
 
-    let cards = document.getElementById("cards");
-    let table = document.getElementById("tableData");
-    let status = document.getElementById("status");
-
-    cards.innerHTML = "";
-    table.innerHTML = "";
-
-    if(!json.data || json.data.length === 0){
-        status.innerText = "No Data";
-        return;
-    }
-
-    status.innerText = json.dummy ? "Dummy Data" : "Live Data";
-
-    json.data.forEach(p=>{
-
-        let cls = "other";
-
-        if(p.Party.includes("INC")) cls="inc";
-        else if(p.Party.includes("CPIM")) cls="cpim";
-        else if(p.Party.includes("IUML")) cls="iuml";
-        else if(p.Party.includes("CPI")) cls="cpi";
-        else if(p.Party.includes("KEC")) cls="kec";
-        else if(p.Party.includes("RSP")) cls="rsp";
-
-        // CARDS
-        cards.innerHTML += `
-        <div class="card ${cls}">
-            ${p.Party}
-            <h1>${p.Total}</h1>
-        </div>
-        `;
-
-        // TABLE
-        table.innerHTML += `
-        <tr>
-            <td>${p.Party}</td>
-            <td>${p.Won}</td>
-            <td style="color:blue;">${p.Leading}</td>
-            <td>${p.Total}</td>
-        </tr>
-        `;
-    });
-}
-
-
-// LOAD CONSTITUENCIES
+// LOAD DROPDOWN
 async function loadConstituencies(){
     let res = await fetch("/api/constituencies");
     let json = await res.json();
@@ -239,21 +81,49 @@ async function loadConstituencies(){
 }
 
 
-// NAVIGATION
-function goToConstituency(){
+// LOAD DATA
+async function loadConstituencyData(){
     let name = document.getElementById("constituencySelect").value;
 
-    if(name){
-        window.location = "/constituency/" + encodeURIComponent(name);
+    if(!name) return;
+
+    currentConstituency = name;
+
+    let res = await fetch("/api/constituency/" + encodeURIComponent(name));
+    let json = await res.json();
+
+    let table = document.getElementById("constituencyTable");
+    table.innerHTML = "";
+
+    if(!json.data || json.data.length === 0){
+        table.innerHTML = "<tr><td colspan='4'>No Data</td></tr>";
+        return;
     }
+
+    json.data.forEach(r=>{
+        table.innerHTML += `
+        <tr>
+            <td>${r.Candidate_Name}</td>
+            <td>${r.Party}</td>
+            <td>${r.Votes}</td>
+            <td>${r.Status}</td>
+        </tr>
+        `;
+    });
+
+    document.getElementById("status").innerText = "Live Updated";
 }
 
 
 // AUTO REFRESH
-setInterval(load, 10000);
+setInterval(()=>{
+    if(currentConstituency){
+        loadConstituencyData();
+    }
+}, 10000);
+
 
 // INIT
-load();
 loadConstituencies();
 
 </script>
