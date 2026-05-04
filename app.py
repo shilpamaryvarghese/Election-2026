@@ -1,67 +1,40 @@
 from flask import Flask, render_template, jsonify
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 import time
 
 app = Flask(__name__)
 
-CSV_FILE = "kerala_2026_candidates.csv"
 BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/"
 STATE_URL = BASE_URL + "statewiseS111.htm"
 
-# 🔥 CACHE
 CACHE = {"data": None, "time": 0}
-CACHE_EXPIRY = 60   # seconds
+CACHE_EXPIRY = 60
 
 
-# =========================
-# LOAD CSV
-# =========================
-def load_csv():
-    df = pd.read_csv(CSV_FILE)
-    df["Constituency_Name"] = df["Constituency_Name"].str.strip()
-    return df
+# ================= FETCH ALL =================
+def fetch_all():
 
+    if time.time() - CACHE["time"] < CACHE_EXPIRY:
+        return CACHE["data"]
 
-# =========================
-# GET LINKS
-# =========================
-def get_links():
     res = requests.get(STATE_URL, headers={"User-Agent": "Mozilla/5.0"})
     soup = BeautifulSoup(res.text, "html.parser")
 
     links = {}
-
     for a in soup.find_all("a"):
         name = a.text.strip()
         href = a.get("href")
-
         if href and "Constituencywise" in href:
             links[name] = BASE_URL + href
 
-    return links
-
-
-# =========================
-# FETCH ALL CANDIDATES
-# =========================
-def fetch_all():
-
-    # 🔥 CACHE CHECK
-    if time.time() - CACHE["time"] < CACHE_EXPIRY:
-        return CACHE["data"]
-
-    links = get_links()
     all_data = []
 
     for name, url in links.items():
-
         try:
-            res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-            soup = BeautifulSoup(res.text, "html.parser")
-
-            table = soup.find("table")
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            s = BeautifulSoup(r.text, "html.parser")
+            table = s.find("table")
 
             for row in table.find_all("tr")[1:]:
                 cols = row.find_all("td")
@@ -71,27 +44,21 @@ def fetch_all():
                         "Constituency": name,
                         "Candidate": cols[0].text.strip(),
                         "Party": cols[1].text.strip(),
-                        "EVM": cols[2].text.strip(),
-                        "Postal": cols[3].text.strip(),
-                        "Total": cols[4].text.strip(),
-                        "Percent": cols[5].text.strip()
+                        "Total": int(cols[4].text.strip().replace(",", "")),
+                        "Percent": float(cols[5].text.strip().replace("%","") or 0)
                     })
 
-        except Exception as e:
-            print("Error:", name, e)
+        except:
+            continue
 
-        time.sleep(0.1)
-
-    # SAVE CACHE
     CACHE["data"] = all_data
     CACHE["time"] = time.time()
 
     return all_data
 
 
-# =========================
-# ROUTES
-# =========================
+# ================= ROUTES =================
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -102,18 +69,55 @@ def dashboard():
     return render_template("dashboard.html")
 
 
+@app.route("/partywise")
+def partywise():
+    return render_template("partywise.html")
+
+
+# ================= API =================
+
 @app.route("/api/results")
 def results():
-    try:
-        data = fetch_all()
-        return jsonify({"data": data})
-    except Exception as e:
-        print(e)
-        return jsonify({"data": []})
+    return jsonify({"data": fetch_all()})
 
 
-# =========================
-# RUN
-# =========================
+@app.route("/api/partywise")
+def partywise_api():
+
+    data = fetch_all()
+
+    party_map = {}
+
+    for d in data:
+
+        party = d["Party"]
+
+        if party not in party_map:
+            party_map[party] = {"votes": 0, "seats": 0}
+
+        party_map[party]["votes"] += d["Total"]
+
+    # winner = max votes per constituency
+    winners = {}
+    for d in data:
+        c = d["Constituency"]
+        if c not in winners or d["Total"] > winners[c]["Total"]:
+            winners[c] = d
+
+    for w in winners.values():
+        party_map[w["Party"]]["seats"] += 1
+
+    result = []
+    for p, v in party_map.items():
+        result.append({
+            "party": p,
+            "votes": v["votes"],
+            "seats": v["seats"]
+        })
+
+    return jsonify({"data": result})
+
+
+# ================= RUN =================
 if __name__ == "__main__":
     app.run(debug=True)
