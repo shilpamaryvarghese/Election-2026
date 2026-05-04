@@ -1,40 +1,35 @@
-import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-import random
+import pandas as pd
 
-URL = "https://www.ndtv.com/elections/kerala/results-2026"
+API_URL = "https://data.ndtv.com/elections/2026/kerala.json"
 
-def fetch_data():
+def fetch_ndtv_data():
     try:
-        page = requests.get(URL, timeout=10)
-        soup = BeautifulSoup(page.text, "html.parser")
+        res = requests.get(API_URL, timeout=10)
+        data = res.json()
 
-        rows = soup.find_all("tr")
+        results = []
 
-        data = []
-        for row in rows:
-            cols = [c.text.strip() for c in row.find_all("td")]
-            if len(cols) >= 4:
-                data.append(cols[:4])
+        for item in data.get("data", []):
+            constituency = item.get("constituency")
+            candidate = item.get("candidate")
+            party = item.get("party")
+            status = item.get("status")
 
-        if len(data) == 0:
-            raise Exception("No data")
+            results.append({
+                "Constituency": constituency,
+                "Candidate": candidate,
+                "Party": party,
+                "Status": status
+            })
 
-        df = pd.DataFrame(data, columns=[
-            "Constituency", "Candidate", "Party", "Votes"
-        ])
+        df = pd.DataFrame(results)
         return df
 
-    except:
-        # fallback
-        constituencies = [f"Seat {i}" for i in range(1, 141)]
-        parties = ["LDF", "UDF", "NDA", "Others"]
+    except Exception as e:
+        print("Error:", e)
+        return pd.DataFrame()
 
-        df = pd.DataFrame({
-            "Constituency": constituencies,
-            "Candidate": ["Candidate"] * 140,
-            "Party": [random.choice(parties) for _ in range(140)],
-            "Votes": [random.randint(1000, 50000) for _ in range(140)]
-        })
-        return df
+if __name__ == "__main__":
+    df = fetch_ndtv_data()
+    print(df.head())
