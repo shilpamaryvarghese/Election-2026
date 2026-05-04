@@ -1,87 +1,134 @@
 import streamlit as st
+import pandas as pd
 import time
+import plotly.express as px
 
 from scraper import fetch_data
 from data_utils import process_data
 
 try:
     from photos import get_candidate_photo
-except Exception:
+except:
     def get_candidate_photo(name):
         return "https://via.placeholder.com/100"
 
-st.set_page_config(layout="wide")
-st.title("🗳️ Kerala Election 2026 - LIVE Dashboard")
-
-# auto refresh every 60 sec
-st.markdown(
-    "<meta http-equiv='refresh' content='60'>",
-    unsafe_allow_html=True
-)
-
-st.sidebar.header("Filters")
-
 try:
+    from kerala_map import KERALA_MAP
+except:
+    KERALA_MAP = {}
+
+# ---------------- UI ----------------
+st.set_page_config(layout="wide")
+
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+        color: white;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🗳️ Kerala Election 2026 LIVE Tracker")
+st.markdown("### Real-time insights & analytics dashboard")
+
+# auto refresh
+st.markdown("<meta http-equiv='refresh' content='20'>", unsafe_allow_html=True)
+
+# ---------------- Data ----------------
+def add_district(df):
+    if "Constituency" in df.columns:
+        df["District"] = df["Constituency"].map(KERALA_MAP)
+    return df
+
+with st.spinner("Fetching live election data..."):
     raw_df = fetch_data()
 
-    if raw_df is None or raw_df.empty:
-        st.warning("Waiting for election data...")
-        st.stop()
+if raw_df is None or raw_df.empty:
+    st.warning("⏳ Waiting for data...")
+    st.stop()
 
-    df, winners, seat_count = process_data(raw_df)
+df, winners, seat_count = process_data(raw_df)
+df = add_district(df)
 
-    constituency_options = ["All"] + sorted(df["Constituency"].unique().tolist())
-    party_options = ["All"] + sorted(df["Party"].unique().tolist())
+df = df.dropna(subset=["Constituency", "Party"])
 
-    selected_constituency = st.sidebar.selectbox(
-        "Constituency", constituency_options
-    )
-    selected_party = st.sidebar.selectbox(
-        "Party", party_options
-    )
+# ---------------- Sidebar ----------------
+st.sidebar.header("🔍 Filters")
 
-    filtered_df = df.copy()
+districts = ["All"] + sorted(df["District"].dropna().unique().tolist())
+constituencies = ["All"] + sorted(df["Constituency"].unique().tolist())
+parties = ["All"] + sorted(df["Party"].unique().tolist())
 
-    if selected_constituency != "All":
-        filtered_df = filtered_df[
-            filtered_df["Constituency"] == selected_constituency
-        ]
+selected_district = st.sidebar.selectbox("District", districts)
+selected_constituency = st.sidebar.selectbox("Constituency", constituencies)
+selected_party = st.sidebar.selectbox("Party", parties)
 
-    if selected_party != "All":
-        filtered_df = filtered_df[
-            filtered_df["Party"] == selected_party
-        ]
+filtered_df = df.copy()
 
-    st.caption(f"Last Updated: {time.strftime('%H:%M:%S')}")
+if selected_district != "All":
+    filtered_df = filtered_df[filtered_df["District"] == selected_district]
 
-    col1, col2 = st.columns([2, 1])
+if selected_constituency != "All":
+    filtered_df = filtered_df[filtered_df["Constituency"] == selected_constituency]
 
-    with col1:
-        st.subheader("Constituency Results")
-        st.dataframe(filtered_df, use_container_width=True)
+if selected_party != "All":
+    filtered_df = filtered_df[filtered_df["Party"] == selected_party]
 
-    with col2:
-        st.subheader("Party Seat Count")
-        st.bar_chart(seat_count)
+# ---------------- Info ----------------
+st.caption(f"⏱️ Last Updated: {time.strftime('%H:%M:%S')}")
 
-    st.subheader("Leading Candidates")
-    st.dataframe(winners, use_container_width=True)
+# ---------------- Insights ----------------
+st.subheader("🧠 Key Insights")
 
-    st.subheader("Total Votes by Party")
-    party_votes = df.groupby("Party")["Votes"].sum()
-    st.bar_chart(party_votes)
+top_party = seat_count.idxmax()
+st.success(f"🔥 Leading Party: {top_party}")
 
-    st.subheader("Candidate Details")
+top_candidate = winners.loc[winners["Votes"].idxmax()]
+st.info(f"🏆 Top Candidate: {top_candidate['Candidate']} ({top_candidate['Votes']} votes)")
 
-    cols = st.columns(4)
+# ---------------- Charts ----------------
+st.subheader("📊 Seat Distribution")
+fig1 = px.pie(values=seat_count.values, names=seat_count.index)
+st.plotly_chart(fig1, use_container_width=True)
 
-    for i, row in winners.head(8).iterrows():
-        with cols[i % 4]:
-            img = get_candidate_photo(row["Candidate"])
-            st.image(img, width=90)
-            st.markdown(f"**{row['Candidate']}**")
-            st.write(f"Party: {row['Party']}")
-            st.write(f"Votes: {row['Votes']}")
+st.subheader("📊 Votes by Party")
+party_votes = df.groupby("Party")["Votes"].sum().reset_index()
+fig2 = px.bar(party_votes, x="Party", y="Votes", color="Party")
+st.plotly_chart(fig2, use_container_width=True)
 
-except Exception as e:
-    st.error(f"Error: {e}")
+st.subheader("🗺️ District-wise Votes")
+district_votes = df.groupby("District")["Votes"].sum().reset_index()
+fig3 = px.bar(district_votes, x="District", y="Votes", color="Votes")
+st.plotly_chart(fig3, use_container_width=True)
+
+# ---------------- Table ----------------
+st.subheader("📊 Live Results")
+st.dataframe(filtered_df, use_container_width=True)
+
+# ---------------- Winners ----------------
+st.subheader("🏆 Leading Candidates")
+st.dataframe(winners, use_container_width=True)
+
+# ---------------- Candidate Cards ----------------
+st.subheader("🧑‍💼 Candidate Highlights")
+
+cols = st.columns(4)
+
+for i, row in winners.iterrows():
+    with cols[i % 4]:
+        img = get_candidate_photo(row["Candidate"])
+        st.image(img, width=100)
+        st.markdown(f"""
+        **{row['Candidate']}**  
+        🏛 {row['Party']}  
+        🗳 {row['Votes']} votes  
+        📍 {row.get('District','N/A')}
+        """)
+
+# ---------------- Trend ----------------
+import numpy as np
+
+st.subheader("📈 Vote Trend (Simulation)")
+trend = np.cumsum(np.random.randint(100, 500, 20))
+st.line_chart(trend)
