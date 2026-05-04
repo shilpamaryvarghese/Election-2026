@@ -19,7 +19,6 @@ CACHE_EXPIRY = 30  # seconds
 def load_data():
     df = pd.read_csv(CSV_FILE)
 
-    # normalize for matching
     df["Candidate_Name"] = df["Candidate_Name"].astype(str).str.strip().str.lower()
     df["Party"] = df["Party"].astype(str).str.strip().str.lower()
     df["Constituency_Name"] = df["Constituency_Name"].astype(str).str.strip()
@@ -119,9 +118,11 @@ def get_cached_data(name):
 
 
 # ---------------- ROUTES ----------------
+
+# 🔥 DASHBOARD AS HOME
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("dashboard.html")
 
 
 @app.route("/candidates")
@@ -139,17 +140,11 @@ def constituency_page(name):
     return render_template("constituency.html", name=name)
 
 
-@app.route("/dashboard")
-def dashboard():
-    return render_template("dashboard.html")
-
-
 # ---------------- API: CONSTITUENCY ----------------
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
     df = load_data()
 
-    # filter base data
     df = df[df["Constituency_Name"] == name]
 
     live_data = get_cached_data(name)
@@ -157,7 +152,6 @@ def api_constituency(name):
     if live_data:
         live_df = pd.DataFrame(live_data)
 
-        # normalize again
         live_df["Candidate_Name"] = live_df["Candidate_Name"].astype(str).str.strip().str.lower()
         live_df["Party"] = live_df["Party"].astype(str).str.strip().str.lower()
 
@@ -207,7 +201,6 @@ def party_summary():
 
     live_df = pd.DataFrame(all_data)
 
-    # normalize
     live_df["Party"] = live_df["Party"].str.strip().str.upper()
     live_df["Status"] = live_df["Status"].str.lower()
 
@@ -221,6 +214,16 @@ def party_summary():
     return jsonify({
         "dummy": False,
         "data": summary.to_dict(orient="records")
+    })
+
+
+# ---------------- API: CONSTITUENCIES ----------------
+@app.route("/api/constituencies")
+def get_constituencies():
+    df = load_data()
+
+    return jsonify({
+        "data": sorted(df["Constituency_Name"].unique())
     })
 
 
