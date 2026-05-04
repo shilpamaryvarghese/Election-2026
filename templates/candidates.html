@@ -1,16 +1,47 @@
-<h2>Candidates</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Candidates</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
 
-<input id="search" placeholder="Search">
-<button onclick="load()">Search</button>
+<div class="header">
+    <h1>Kerala Election Results</h1>
+</div>
 
-<table border="1">
+<div class="navbar">
+    <a href="/">Home</a>
+    <a href="/candidates">Candidates</a>
+    <a href="/partywise">Party Wise</a>
+</div>
+
+<div class="container">
+
+<h2>Candidate List</h2>
+
+<p id="status"></p>
+
+<div class="filters">
+    <input id="search" placeholder="Search Candidate">
+    <button onclick="load()">Search</button>
+</div>
+
+<table>
 <thead>
 <tr>
-<th>Name</th><th>Party</th><th>District</th><th>Constituency</th><th>Status</th>
+<th>Name</th>
+<th>Party</th>
+<th>District</th>
+<th>Constituency</th>
+<th>Status</th>
 </tr>
 </thead>
+
 <tbody id="data"></tbody>
 </table>
+
+</div>
 
 <script>
 async function load(){
@@ -18,6 +49,9 @@ async function load(){
 
     let res = await fetch(`/api/candidates?search=${s}`);
     let json = await res.json();
+
+    document.getElementById("status").innerText =
+        json.dummy ? "Showing Dummy Data" : "Live Data (Mapped)";
 
     let tbody = document.getElementById("data");
     tbody.innerHTML = "";
@@ -38,5 +72,9 @@ function go(name){
     window.location = "/constituency/" + name;
 }
 
+setInterval(load, 10000);
 load();
 </script>
+
+</body>
+</html>
