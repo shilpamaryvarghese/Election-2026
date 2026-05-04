@@ -67,28 +67,51 @@ def home():
 
 
 # ---------------- API: PARTY SUMMARY ----------------
-@app.route("/api/party-summary")
-def party_summary():
+@app.route("/api/overall-summary")
+def overall_summary():
     data = get_data()
 
     if not data:
-        return jsonify({"dummy": True, "data": []})
+        return jsonify({"data": {}})
 
     df = pd.DataFrame(data)
 
+    # CLEAN
     df["party"] = df["party"].str.upper()
-    df["status"] = df["status"].str.lower()
+    df["votes"] = pd.to_numeric(df["votes"], errors="coerce").fillna(0)
 
-    summary = df.groupby("party").agg(
-        Won=("status", lambda x: (x == "won").sum()),
-        Leading=("status", lambda x: (x == "leading").sum())
+    # PARTY → ALLIANCE
+    alliance_map = {
+        "INC": "UDF",
+        "IUML": "UDF",
+
+        "CPIM": "LDF",
+        "CPI": "LDF",
+
+        "BJP": "NDA"
+    }
+
+    df["Alliance"] = df["party"].map(alliance_map).fillna("Others")
+
+    # TOTAL VOTES
+    total_votes = int(df["votes"].sum())
+
+    # GROUP
+    summary = df.groupby("Alliance").agg(
+        Seats=("status", lambda x: (x.str.lower() == "won").sum()),
+        Votes=("votes", "sum")
     ).reset_index()
 
-    summary["Total"] = summary["Won"] + summary["Leading"]
+    # CALCULATE %
+    summary["Percent"] = ((summary["Votes"] / total_votes) * 100).round(1)
 
-    return jsonify({
-        "data": summary.rename(columns={"party": "Party"}).to_dict(orient="records")
-    })
+    result = {
+        "TotalSeats": 140,
+        "TotalVotes": total_votes,
+        "alliances": summary.to_dict(orient="records")
+    }
+
+    return jsonify({"data": result})
 
 
 # ---------------- API: CONSTITUENCY ----------------
