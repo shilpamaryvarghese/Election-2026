@@ -1,39 +1,99 @@
-async function loadTable(){
+<!DOCTYPE html>
+<html>
+<head>
+<title>Election Dashboard</title>
+
+<style>
+body { font-family: Arial; background:#f4f4f4; }
+
+h2 { padding:20px; }
+
+table {
+    width: 95%;
+    margin: auto;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: #0b3d91;
+    color: white;
+    padding: 10px;
+}
+
+td {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+.winner {
+    background: #d4edda !important;
+    font-weight: bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2>Candidate Wise Results (ECI Style)</h2>
+
+<table>
+<thead>
+<tr>
+<th>Constituency</th>
+<th>Candidate</th>
+<th>Party</th>
+<th>EVM</th>
+<th>Postal</th>
+<th>Total</th>
+<th>%</th>
+</tr>
+</thead>
+
+<tbody id="tableBody">
+<tr><td colspan="7">Loading...</td></tr>
+</tbody>
+
+</table>
+
+<script>
+
+async function loadData(){
 
     let tbody = document.getElementById("tableBody");
 
-    tbody.innerHTML = `<tr><td colspan="9">Loading...</td></tr>`;
+    let res = await fetch("/api/results");
+    let json = await res.json();
 
-    try {
+    tbody.innerHTML = "";
 
-        let res = await fetch("/api/constituency/all");
-        let json = await res.json();
+    json.data.forEach(r => {
 
-        tbody.innerHTML = "";
+        let percent = parseFloat(r.Percent) || 0;
 
-        if(!json.data || json.data.length === 0){
-            tbody.innerHTML = `<tr><td colspan="9">No data found</td></tr>`;
-            return;
-        }
+        let cls = percent > 40 ? "winner" : "";
 
-        json.data.forEach(r => {
-
-            tbody.innerHTML += `
-            <tr>
-                <td>${r.constituency}</td>
-                <td>${r.const_no}</td>
-                <td>${r.leading_candidate}</td>
-                <td>${r.leading_party}</td>
-                <td>${r.trailing_candidate}</td>
-                <td>${r.trailing_party}</td>
-                <td>${r.margin}</td>
-                <td>${r.round}</td>
-                <td>${r.status}</td>
-            </tr>`;
-        });
-
-    } catch (err){
-        tbody.innerHTML = `<tr><td colspan="9">Error loading data</td></tr>`;
-        console.error(err);
-    }
+        tbody.innerHTML += `
+        <tr class="${cls}">
+            <td>${r.Constituency}</td>
+            <td>${r.Candidate}</td>
+            <td>${r.Party}</td>
+            <td>${r.EVM}</td>
+            <td>${r.Postal}</td>
+            <td><b>${r.Total}</b></td>
+            <td>${r.Percent}</td>
+        </tr>`;
+    });
 }
+
+loadData();
+
+</script>
+
+</body>
+</html>
