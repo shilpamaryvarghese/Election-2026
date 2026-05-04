@@ -1,79 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Candidates</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<title>Candidate Search</title>
 </head>
+
 <body>
 
-<div class="header">
-    <h1>Kerala Election Results</h1>
-</div>
+<h2>Search Candidate</h2>
 
-<div class="navbar">
-    <a href="/">Home</a>
-    <a href="/candidates">Candidates</a>
-    <a href="/partywise">Party Wise</a>
-</div>
+<input id="search" placeholder="Enter name">
 
-<div class="container">
-
-<h2>Candidate List</h2>
-
-<p id="status"></p>
-
-<div class="filters">
-    <input id="search" placeholder="Search Candidate">
-    <button onclick="load()">Search</button>
-</div>
-
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Party</th>
-<th>District</th>
-<th>Constituency</th>
-<th>Status</th>
-</tr>
-</thead>
-
-<tbody id="data"></tbody>
-</table>
-
-</div>
+<div id="results"></div>
 
 <script>
-async function load(){
-    let s = document.getElementById("search").value;
+document.getElementById("search").addEventListener("keyup", async function(){
 
-    let res = await fetch(`/api/candidates?search=${s}`);
+    let q = this.value;
+
+    if(q.length < 2) return;
+
+    let res = await fetch("/api/search/"+q);
     let json = await res.json();
 
-    document.getElementById("status").innerText =
-        json.dummy ? "Showing Dummy Data" : "Live Data (Mapped)";
-
-    let tbody = document.getElementById("data");
-    tbody.innerHTML = "";
+    let div = document.getElementById("results");
+    div.innerHTML="";
 
     json.data.forEach(r=>{
-        tbody.innerHTML += `
-        <tr onclick="go('${r.Constituency_Name}')">
-        <td>${r.Candidate_Name}</td>
-        <td>${r.Party}</td>
-        <td>${r.District}</td>
-        <td>${r.Constituency_Name}</td>
-        <td>${r.Status}</td>
-        </tr>`;
+        div.innerHTML += `<p>${r.candidate} - ${r.votes}</p>`;
     });
-}
 
-function go(name){
-    window.location = "/constituency/" + name;
-}
-
-setInterval(load, 10000);
-load();
+});
 </script>
 
 </body>
