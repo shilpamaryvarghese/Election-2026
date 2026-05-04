@@ -4,54 +4,84 @@
 <title>Election Dashboard</title>
 
 <link rel="stylesheet" href="/static/style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+
+<style>
+
+/* TABLE STYLE */
+.table-container {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background: #0b3d91;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+body.dark table {
+    background: #1e1e1e;
+    color: white;
+}
+
+body.dark th {
+    background: #333;
+}
+
+</style>
 
 </head>
 
 <body>
 
-<!-- DARK MODE -->
-<div class="toggle" onclick="toggleDark()">🌙</div>
-
-<!-- HEADER -->
-<div class="header">
-    Kerala Election Results 2026
-</div>
-
-<!-- 🔴 LIVE TICKER -->
-<div class="ticker">
-    <div id="tickerText">Loading live updates...</div>
-</div>
-
-<!-- SUMMARY -->
-<div class="summary">
-    <div class="card UDF"><h3>UDF</h3><h1 id="udf">0</h1></div>
-    <div class="card LDF"><h3>LDF</h3><h1 id="ldf">0</h1></div>
-    <div class="card NDA"><h3>NDA</h3><h1 id="nda">0</h1></div>
-    <div class="card OTH"><h3>Others</h3><h1 id="oth">0</h1></div>
-</div>
+<div class="header">Kerala Election Dashboard</div>
 
 <div class="container">
 
     <!-- LEFT -->
     <div class="left">
         <canvas id="barChart"></canvas>
+
+        <h2 style="padding:20px;">Full Results</h2>
+
+        <div class="table-container">
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Constituency</th>
+                        <th>Candidate</th>
+                        <th>Party</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="4">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 
     <!-- RIGHT -->
     <div class="right">
 
-        <input id="search" placeholder="Search constituency...">
-
-        <select id="select" onchange="loadData()">
-            <option value="">Select Constituency</option>
-        </select>
-
-        <div id="results">
-            <div class="loader"></div>
-        </div>
+        <input id="search" placeholder="Search..." />
 
     </div>
 
@@ -59,55 +89,9 @@
 
 <script>
 
-// 🌙 DARK MODE
-function toggleDark(){
-    document.body.classList.toggle("dark");
-}
-
-
-// 🔢 ANIMATION
-function animateValue(id, start, end, duration) {
-    let obj = document.getElementById(id);
-    let range = end - start;
-    let startTime = null;
-
-    function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        let progress = Math.min((timestamp - startTime) / duration, 1);
-        obj.innerText = Math.floor(progress * range + start);
-        if (progress < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-}
-
-
-// 📊 SUMMARY
-async function loadSummary(){
-    let res = await fetch("/api/summary");
-    let json = await res.json();
-
-    let udf=0, ldf=0, nda=0, oth=0;
-
-    json.data.forEach(d=>{
-        if(d.Alliance==="UDF") udf=d.Seats;
-        if(d.Alliance==="LDF") ldf=d.Seats;
-        if(d.Alliance==="NDA") nda=d.Seats;
-        if(d.Alliance==="Others") oth=d.Seats;
-    });
-
-    animateValue("udf", parseInt(udf)||0, udf, 800);
-    animateValue("ldf", parseInt(ldf)||0, ldf, 800);
-    animateValue("nda", parseInt(nda)||0, nda, 800);
-    animateValue("oth", parseInt(oth)||0, oth, 800);
-
-    loadChart(json.data);
-}
-
-
 // 📊 CHART
 let chart;
 function loadChart(data){
-
     let labels = data.map(d=>d.Alliance);
     let seats = data.map(d=>d.Seats);
 
@@ -123,124 +107,54 @@ function loadChart(data){
 }
 
 
-// 🔴 TICKER
-async function loadTicker(){
+// 📊 SUMMARY
+async function loadSummary(){
     let res = await fetch("/api/summary");
     let json = await res.json();
-
-    let text = "";
-
-    json.data.forEach(d=>{
-        text += `${d.Alliance}: ${d.Seats} seats | `;
-    });
-
-    document.getElementById("tickerText").innerText = text;
+    loadChart(json.data);
 }
 
 
-// 📍 CONSTITUENCIES
-async function loadConstituencies(){
-    let res = await fetch("/api/constituencies");
+// 📋 LOAD TABLE DATA
+async function loadTable(){
+
+    let tbody = document.getElementById("tableBody");
+
+    tbody.innerHTML = `<tr><td colspan="4">Loading...</td></tr>`;
+
+    let res = await fetch("/api/constituency/all");
     let json = await res.json();
 
-    let sel = document.getElementById("select");
-
-    json.data.forEach(c=>{
-        sel.innerHTML += `<option value="${c}">${c}</option>`;
-    });
-}
-
-
-// 📍 LOAD RESULTS
-async function loadData(){
-
-    let name = document.getElementById("select").value;
-    if(!name) return;
-
-    let div = document.getElementById("results");
-
-    div.innerHTML = `<div class="loader"></div>`;
-
-    let res = await fetch("/api/constituency/"+name);
-    let json = await res.json();
-
-    div.innerHTML = "";
-
-    let totalVotes = json.data.reduce((sum,r)=>sum+Number(r.votes),0);
+    tbody.innerHTML = "";
 
     json.data.forEach(r => {
 
-        let percent = totalVotes ? (r.votes / totalVotes) * 100 : 0;
-
-        let isWinner = (r.status || "").toLowerCase() === "won";
-
-        div.innerHTML += `
-        <div class="result ${isWinner ? "winner" : ""}">
-            <b>${r.Candidate_Name}</b><br>
-            ${r.Party}<br>
-            Votes: ${r.votes} (${percent.toFixed(1)}%)<br>
-            Status: ${r.status}
-
-            <div class="bar" style="width:${percent}%"></div>
-        </div>`;
+        tbody.innerHTML += `
+        <tr>
+            <td>${r.constituency || "-"}</td>
+            <td>${r.Candidate_Name}</td>
+            <td>${r.Party}</td>
+            <td>${r.status}</td>
+        </tr>`;
     });
 }
 
 
-// 🔍 SEARCH
+// 🔍 SEARCH FILTER
 document.getElementById("search").addEventListener("keyup", function(){
+
     let val = this.value.toLowerCase();
-    let options = document.querySelectorAll("#select option");
+    let rows = document.querySelectorAll("#tableBody tr");
 
-    options.forEach(o=>{
-        o.style.display = o.value.toLowerCase().includes(val) ? "block" : "none";
+    rows.forEach(row=>{
+        row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
     });
 });
-
-
-// 🔔 WINNER ALERT
-let announced = {};
-
-async function checkWinners(){
-
-    let res = await fetch("/api/summary");
-    let json = await res.json();
-
-    json.data.forEach(d=>{
-
-        if(d.Seats > (announced[d.Alliance] || 0)){
-
-            announced[d.Alliance] = d.Seats;
-
-            let audio = new Audio("https://www.soundjay.com/buttons/beep-07.mp3");
-            audio.play();
-
-            alert(`${d.Alliance} gained a seat! Total: ${d.Seats}`);
-        }
-    });
-}
-
-
-// ⚡ WEBSOCKET
-const socket = io();
-
-socket.on("update", function(data){
-    console.log("Live update");
-    loadSummary();
-    loadTicker();
-});
-
-
-// 🔄 AUTO REFRESH (fallback)
-setInterval(loadSummary, 10000);
-setInterval(loadTicker, 10000);
-setInterval(checkWinners, 10000);
 
 
 // 🚀 INIT
 loadSummary();
-loadTicker();
-loadConstituencies();
+loadTable();
 
 </script>
 
