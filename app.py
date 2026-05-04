@@ -74,6 +74,69 @@ def partywise():
     return render_template("partywise.html")
 
 
+#========================================
+@app.route("/api/summary")
+def summary():
+    try:
+        url = "https://results.eci.gov.in/ResultAcGenMay2026/election-json-S11-live.json"
+
+        res = requests.get(url, timeout=10)
+        data = res.json()
+
+        parties = data.get("partywise", [])
+
+        result = {
+            "UDF": {"Seats": 0, "Votes": 0},
+            "LDF": {"Seats": 0, "Votes": 0},
+            "NDA": {"Seats": 0, "Votes": 0},
+            "Others": {"Seats": 0, "Votes": 0}
+        }
+
+        # 🔥 PARTY → ALLIANCE MAP
+        udf = ["INC","IUML","RSP","KER"]
+        ldf = ["CPM","CPI"]
+        nda = ["BJP","BDJS"]
+
+        for p in parties:
+            party = p.get("partyAbbr","").upper()
+            seats = int(p.get("won",0)) + int(p.get("leading",0))
+            votes = int(p.get("votes",0))
+
+            if party in udf:
+                result["UDF"]["Seats"] += seats
+                result["UDF"]["Votes"] += votes
+
+            elif party in ldf:
+                result["LDF"]["Seats"] += seats
+                result["LDF"]["Votes"] += votes
+
+            elif party in nda:
+                result["NDA"]["Seats"] += seats
+                result["NDA"]["Votes"] += votes
+
+            else:
+                result["Others"]["Seats"] += seats
+                result["Others"]["Votes"] += votes
+
+        return jsonify({
+            "data": [
+                {"Alliance":k, "Seats":v["Seats"], "Votes":v["Votes"]}
+                for k,v in result.items()
+            ]
+        })
+
+    except Exception as e:
+        print("Summary error:", e)
+
+        return jsonify({
+            "data":[
+                {"Alliance":"UDF","Seats":0,"Votes":0},
+                {"Alliance":"LDF","Seats":0,"Votes":0},
+                {"Alliance":"NDA","Seats":0,"Votes":0},
+                {"Alliance":"Others","Seats":0,"Votes":0}
+            ]
+        })
+
 # ================= API =================
 
 @app.route("/api/results")
