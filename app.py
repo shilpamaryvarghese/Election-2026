@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, jsonify
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -6,55 +6,73 @@ from bs4 import BeautifulSoup
 app = Flask(__name__)
 
 CSV_FILE = "kerala_2026_candidates.csv"
+BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/"
 
 
-# ---------------- LOAD DATA ----------------
+# ---------------- LOAD CSV ----------------
 def load_data():
     return pd.read_csv(CSV_FILE)
 
 
-# ---------------- FETCH LIVE DATA ----------------
-def fetch_party_data():
+# ---------------- GET ALL CONSTITUENCY LINKS ----------------
+def get_constituency_links():
     try:
-        url = "https://results.eci.gov.in/ResultAcGenMay2026/partywiseresult-S11.htm"
+        url = BASE_URL + "index.htm"
         res = requests.get(url, timeout=5)
 
-        if res.status_code != 200:
+        soup = BeautifulSoup(res.text, "html.parser")
+
+        links = {}
+
+        for a in soup.find_all("a"):
+            text = a.text.strip()
+            href = a.get("href")
+
+            if href and "S11" in href and ".htm" in href:
+                links[text] = href
+
+        return links
+
+    except Exception as e:
+        print("Error fetching links:", e)
+        return {}
+
+
+# ---------------- FETCH CONSTITUENCY DATA ----------------
+def fetch_constituency_data(constituency_name):
+    try:
+        links = get_constituency_links()
+
+        page = links.get(constituency_name)
+
+        if not page:
             return None
+
+        url = BASE_URL + page
+
+        res = requests.get(url, timeout=5)
 
         soup = BeautifulSoup(res.text, "html.parser")
         table = soup.find("table")
 
-        data = {}
+        data = []
 
         for row in table.find_all("tr")[1:]:
             cols = [c.text.strip() for c in row.find_all("td")]
 
             if len(cols) >= 4:
-                data[cols[0]] = {
-                    "won": int(cols[1]),
-                    "leading": int(cols[2])
-                }
+                data.append({
+                    "Candidate_Name": cols[0],
+                    "Party": cols[1],
+                    "Votes": cols[2],
+                    "Status": cols[3]
+                })
 
         return data
-    except:
+
+    except Exception as e:
+        print("Error fetching constituency:", e)
         return None
-
-
-# ---------------- MERGE ----------------
-def merge(df, party_data):
-    df["Status"] = "NA"
-
-    if not party_data:
-        return df, True
-
-    for party, stats in party_data.items():
-        if stats["won"] > 0:
-            df.loc[df["Party"] == party, "Status"] = "Won"
-        elif stats["leading"] > 0:
-            df.loc[df["Party"] == party, "Status"] = "Leading"
-
-    return df, False
 
 
 # ---------------- ROUTES ----------------
@@ -78,76 +96,40 @@ def constituency_page(name):
     return render_template("constituency.html", name=name)
 
 
-# ---------------- APIs ----------------
-@app.route("/api/candidates")
-def api_candidates():
-    df = load_data()
-    party_data = fetch_party_data()
-
-    df, dummy = merge(df, party_data)
-
-    party = request.args.get("party")
-    district = request.args.get("district")
-    constituency = request.args.get("constituency")
-    search = request.args.get("search")
-
-    if party:
-        df = df[df["Party"] == party]
-
-    if district:
-        df = df[df["District"] == district]
-
-    if constituency:
-        df = df[df["Constituency_Name"] == constituency]
-
-    if search:
-        df = df[df["Candidate_Name"].str.contains(search, case=False, na=False)]
-
-    return jsonify({
-        "dummy": dummy,
-        "data": df.to_dict(orient="records"),
-        "filters": {
-            "party": sorted(df["Party"].dropna().unique().tolist()),
-            "district": sorted(df["District"].dropna().unique().tolist()),
-            "constituency": sorted(df["Constituency_Name"].dropna().unique().tolist())
-        }
-    })
-
-
-@app.route("/api/partywise")
-def api_partywise():
-    df = load_data()
-    party_data = fetch_party_data()
-
-    summary = df.groupby("Party").size().reset_index(name="Candidates")
-
-    if party_data:
-        summary["Won"] = summary["Party"].map(lambda x: party_data.get(x, {}).get("won", 0))
-        summary["Leading"] = summary["Party"].map(lambda x: party_data.get(x, {}).get("leading", 0))
-        dummy = False
-    else:
-        summary["Won"] = 0
-        summary["Leading"] = 0
-        dummy = True
-
-    return jsonify({
-        "dummy": dummy,
-        "data": summary.to_dict(orient="records")
-    })
-
-
+# ---------------- API ----------------
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
     df = load_data()
-    party_data = fetch_party_data()
-
-    df, dummy = merge(df, party_data)
     df = df[df["Constituency_Name"] == name]
 
-    return jsonify({
-        "dummy": dummy,
-        "data": df.to_dict(orient="records")
-    })
+    live_data = fetch_constituency_data(name)
+
+    if live_data:
+        live_df = pd.DataFrame(live_data)
+
+        merged = pd.merge(
+            df,
+            live_df,
+            on=["Candidate_Name", "Party"],
+            how="left"
+        )
+
+        merged["Votes"] = merged["Votes"].fillna("0")
+        merged["Status"] = merged["Status"].fillna("NA")
+
+        return jsonify({
+            "dummy": False,
+            "data": merged.to_dict(orient="records")
+        })
+
+    else:
+        df["Votes"] = "0"
+        df["Status"] = "Dummy"
+
+        return jsonify({
+            "dummy": True,
+            "data": df.to_dict(orient="records")
+        })
 
 
 if __name__ == "__main__":
