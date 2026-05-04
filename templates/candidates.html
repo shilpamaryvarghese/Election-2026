@@ -1,0 +1,42 @@
+<h2>Candidates</h2>
+
+<input id="search" placeholder="Search">
+<button onclick="load()">Search</button>
+
+<table border="1">
+<thead>
+<tr>
+<th>Name</th><th>Party</th><th>District</th><th>Constituency</th><th>Status</th>
+</tr>
+</thead>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+async function load(){
+    let s = document.getElementById("search").value;
+
+    let res = await fetch(`/api/candidates?search=${s}`);
+    let json = await res.json();
+
+    let tbody = document.getElementById("data");
+    tbody.innerHTML = "";
+
+    json.data.forEach(r=>{
+        tbody.innerHTML += `
+        <tr onclick="go('${r.Constituency_Name}')">
+        <td>${r.Candidate_Name}</td>
+        <td>${r.Party}</td>
+        <td>${r.District}</td>
+        <td>${r.Constituency_Name}</td>
+        <td>${r.Status}</td>
+        </tr>`;
+    });
+}
+
+function go(name){
+    window.location = "/constituency/" + name;
+}
+
+load();
+</script>
