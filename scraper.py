@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import random
 
-URL = "https://results.eci.gov.in/ResultAcGenMay2026/election-json-S11-live.json"
+URL = "https://edata.ndtv.com/feeds/elex/2026/electionswidget2026.json"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0"
