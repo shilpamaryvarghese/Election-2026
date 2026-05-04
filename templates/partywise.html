@@ -1,58 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Party Wise</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<title>Party Wise</title>
 </head>
+
 <body>
 
-<div class="header">
-    <h1>Party Wise Results</h1>
-</div>
+<h2>Party Wise</h2>
 
-<div class="navbar">
-    <a href="/">Home</a>
-    <a href="/candidates">Candidates</a>
-    <a href="/partywise">Party Wise</a>
-</div>
-
-<div class="container">
-
-<table>
-<thead>
-<tr>
-<th>Party</th>
-<th>Total Candidates</th>
-<th>Won</th>
-<th>Leading</th>
-</tr>
-</thead>
-
-<tbody id="data"></tbody>
+<table border="1">
+<tr><th>Party</th><th>Seats</th><th>Votes</th></tr>
+<tbody id="table"></tbody>
 </table>
-
-</div>
 
 <script>
 async function load(){
     let res = await fetch("/api/partywise");
     let json = await res.json();
 
-    let tbody = document.getElementById("data");
-    tbody.innerHTML = "";
+    let t = document.getElementById("table");
 
-    json.data.forEach(r=>{
-        tbody.innerHTML += `
-        <tr>
-        <td>${r.Party}</td>
-        <td>${r.Candidates}</td>
-        <td>${r.Won}</td>
-        <td>${r.Leading}</td>
+    json.data.forEach(d=>{
+        t.innerHTML += `<tr>
+        <td>${d.party}</td>
+        <td>${d.Seats}</td>
+        <td>${d.Votes}</td>
         </tr>`;
     });
 }
 
-setInterval(load, 10000);
 load();
 </script>
 
