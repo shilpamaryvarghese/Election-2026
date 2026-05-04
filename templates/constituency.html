@@ -1,102 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Kerala Election</title>
-
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body { font-family: Arial; text-align:center; }
-
-.card {
-    display:inline-block;
-    padding:20px;
-    margin:10px;
-    border-radius:10px;
-    color:white;
-    width:120px;
-}
-
-.ldf { background:red; }
-.udf { background:blue; }
-.nda { background:orange; }
-.others { background:gray; }
-
-#spinner {
-    display:inline-block;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {transform: rotate(0deg);}
-    to {transform: rotate(360deg);}
-}
-
-svg path {
-    fill:#ccc;
-    stroke:black;
-    cursor:pointer;
-}
-svg path:hover {
-    fill:yellow;
-}
+body { font-family:Arial; padding:20px; }
+canvas { max-width:400px; margin:20px; }
 </style>
 </head>
 
 <body>
 
-<h1>Kerala Election 2026</h1>
+<h2>Dashboard</h2>
 
-<div id="status">Loading <span id="spinner">🔄</span></div>
-
-<!-- ALLIANCE -->
-<div id="alliances"></div>
-
-<h2>Click District</h2>
-
-<!-- SIMPLE MAP -->
-<svg viewBox="0 0 200 400" width="300">
-
-<path id="Kasargod" d="M10,10 L100,10 L100,50 L10,50 Z"/>
-<path id="Kannur" d="M10,60 L100,60 L100,100 L10,100 Z"/>
-<path id="Kozhikode" d="M10,110 L100,110 L100,150 L10,150 Z"/>
-<path id="Malappuram" d="M10,160 L100,160 L100,200 L10,200 Z"/>
-
-</svg>
+<canvas id="barChart"></canvas>
+<canvas id="pieChart"></canvas>
 
 <script>
+async function loadCharts(){
 
-async function load(){
-    document.getElementById("status").innerHTML = "Updating 🔄";
-
-    let res = await fetch("/api/alliance");
+    let res = await fetch("/api/summary");
     let json = await res.json();
 
-    let div = document.getElementById("alliances");
-    div.innerHTML = "";
+    let labels = json.data.map(d=>d.Alliance);
+    let seats = json.data.map(d=>d.Seats);
 
-    json.data.forEach(a=>{
-        let cls = a.Alliance.toLowerCase();
-
-        div.innerHTML += `
-        <div class="card ${cls}">
-            <h3>${a.Alliance}</h3>
-            <h1>${a.Total}</h1>
-        </div>
-        `;
+    new Chart(document.getElementById("barChart"), {
+        type:'bar',
+        data:{ labels:labels, datasets:[{ data:seats }] }
     });
 
-    document.getElementById("status").innerHTML = "Live Updated ✅";
+    new Chart(document.getElementById("pieChart"), {
+        type:'pie',
+        data:{ labels:labels, datasets:[{ data:seats }] }
+    });
 }
 
-// MAP CLICK
-document.querySelectorAll("svg path").forEach(p=>{
-    p.onclick = ()=>{
-        window.location = "/constituency/" + p.id;
-    };
-});
-
-load();
-setInterval(load, 10000);
-
+loadCharts();
 </script>
 
 </body>
