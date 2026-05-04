@@ -7,14 +7,13 @@ app = Flask(__name__)
 
 # ---------------- FILE + API ----------------
 CSV_FILE = "kerala_2026_candidates.csv"
-
 RESULT_API = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 HIT_API = "https://api.opendatakerala.org/api/kla2026/hitcounter"
 
 # ---------------- CACHE ----------------
 CACHE = None
 CACHE_TIME = 0
-CACHE_EXPIRY = 30  # seconds
+CACHE_EXPIRY = 30
 
 
 # ---------------- LOAD CSV ----------------
@@ -22,9 +21,12 @@ def load_csv():
     try:
         df = pd.read_csv(CSV_FILE)
 
+        # CLEAN DATA
         df["Candidate_Name"] = df["Candidate_Name"].astype(str).str.strip().str.lower()
         df["Party"] = df["Party"].astype(str).str.strip().str.lower()
         df["Constituency_Name"] = df["Constituency_Name"].astype(str).str.strip()
+
+        df = df.dropna(subset=["Constituency_Name"])
 
         return df
 
@@ -37,18 +39,15 @@ def load_csv():
 def fetch_data():
     try:
         res = requests.get(RESULT_API, timeout=10)
-
         if res.status_code != 200:
             return None
-
         return res.json()
-
     except Exception as e:
         print("API Error:", e)
         return None
 
 
-# ---------------- CACHE WRAPPER ----------------
+# ---------------- CACHE ----------------
 def get_data():
     global CACHE, CACHE_TIME
 
@@ -104,17 +103,15 @@ def party_summary():
     })
 
 
-# ---------------- API: CONSTITUENCY (MERGE CSV + API) ----------------
+# ---------------- API: CONSTITUENCY ----------------
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
     csv_df = load_csv()
     api_data = get_data()
 
-    # FILTER CSV
     csv_df = csv_df[csv_df["Constituency_Name"].str.lower() == name.lower()]
 
     if not api_data:
-        # fallback dummy
         csv_df["Votes"] = 0
         csv_df["Status"] = "Dummy"
 
@@ -125,14 +122,12 @@ def api_constituency(name):
 
     api_df = pd.DataFrame(api_data)
 
-    # CLEAN API DATA
     api_df["candidate"] = api_df["candidate"].astype(str).str.strip().str.lower()
     api_df["party"] = api_df["party"].astype(str).str.strip().str.lower()
     api_df["constituency"] = api_df["constituency"].astype(str).str.strip()
 
     api_df = api_df[api_df["constituency"].str.lower() == name.lower()]
 
-    # MERGE
     merged = pd.merge(
         csv_df,
         api_df,
@@ -150,7 +145,7 @@ def api_constituency(name):
     })
 
 
-# ---------------- API: CONSTITUENCIES (FROM CSV) ----------------
+# ---------------- API: CONSTITUENCIES (CSV) ----------------
 @app.route("/api/constituencies")
 def get_constituencies():
     df = load_csv()
@@ -168,14 +163,10 @@ def get_constituencies():
 def hitcount():
     try:
         res = requests.get(HIT_API, timeout=5)
-
         if res.status_code != 200:
             return jsonify({"count": 0})
-
         return jsonify(res.json())
-
-    except Exception as e:
-        print("Hit API Error:", e)
+    except:
         return jsonify({"count": 0})
 
 
