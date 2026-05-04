@@ -1,73 +1,196 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Live Results</title>
+    <title>Kerala Election Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div class="header">
-    <h1>Kerala Election Live Results</h1>
+<!-- HEADER -->
+<div style="text-align:center; padding:20px;">
+    <h1>General Election to Assembly Constituencies: Trends & Results May-2026</h1>
+    <h2 style="color:#1f3c88;">
+        Kerala <span style="color:#555;">(Total AC : 140)</span>
+    </h2>
+    <hr style="width:150px; border:2px solid green;">
 </div>
 
-<div class="container">
+<!-- PARTY CARDS -->
+<div id="cards" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
 
-<h2>Party Seat Count</h2>
+<!-- MAIN CONTENT -->
+<div style="display:flex; margin:20px; gap:20px;">
 
-<div id="cards" style="display:flex; flex-wrap:wrap;"></div>
+    <!-- LEFT TABLE -->
+    <div style="flex:1; background:#eee; border-radius:8px;">
+        <h3 style="background:#b5a7d6; padding:10px;">Party Wise Results</h3>
 
-<canvas id="chart" height="100"></canvas>
+        <table style="width:100%; background:white;">
+            <thead>
+                <tr>
+                    <th>Party</th>
+                    <th>Won</th>
+                    <th>Leading</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="tableData"></tbody>
+        </table>
+    </div>
+
+    <!-- RIGHT SIDE (DROPDOWN + MAP PLACEHOLDER) -->
+    <div style="flex:1; background:#eee; border-radius:8px;">
+        
+        <div style="background:#b5a7d6; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+            <h3>Constituency Wise Results</h3>
+
+            <!-- DROPDOWN -->
+            <select id="constituencySelect" onchange="goToConstituency()">
+                <option value="">Select Constituency</option>
+            </select>
+        </div>
+
+        <div style="padding:20px; text-align:center;">
+            <p>🗺️ Select a constituency to view details</p>
+        </div>
+
+    </div>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- CHARTS -->
+<div style="display:flex; margin:20px; gap:20px;">
+
+    <div style="flex:1; background:#eee;">
+        <h3 style="background:#b5a7d6; padding:10px;">Party Wise Results</h3>
+        <canvas id="chart1"></canvas>
+    </div>
+
+    <div style="flex:1; background:#eee;">
+        <h3 style="background:#b5a7d6; padding:10px;">Vote Share</h3>
+        <canvas id="chart2"></canvas>
+    </div>
+
+</div>
 
 <script>
+
+// LOAD PARTY DATA
 async function load(){
     let res = await fetch("/api/party-summary");
     let json = await res.json();
 
     let cards = document.getElementById("cards");
+    let table = document.getElementById("tableData");
+
     cards.innerHTML = "";
+    table.innerHTML = "";
 
     let labels = [];
     let values = [];
 
     json.data.forEach(p=>{
+        let color = "#888";
+
+        if(p.Party.includes("INC")) color = "#2fa4d6";
+        else if(p.Party.includes("CPIM")) color = "#ff1a1a";
+        else if(p.Party.includes("IUML")) color = "green";
+        else if(p.Party.includes("CPI")) color = "#e60023";
+        else if(p.Party.includes("BJP")) color = "#f28c38";
+        else color = "#999966";
+
+        // CARDS
         cards.innerHTML += `
-        <div style="background:#1f3c88;color:white;padding:15px;margin:10px;border-radius:8px;">
-            <h3>${p.Party}</h3>
-            <p>Total: ${p.Total}</p>
-            <p>Won: ${p.Won}</p>
-            <p>Leading: ${p.Leading}</p>
+        <div style="
+            background:${color};
+            color:white;
+            padding:20px;
+            margin:10px;
+            border-radius:10px;
+            width:150px;
+            text-align:center;
+        ">
+            <b>${p.Party}</b>
+            <h1>${p.Total}</h1>
         </div>
+        `;
+
+        // TABLE
+        table.innerHTML += `
+        <tr>
+            <td>${p.Party}</td>
+            <td>${p.Won}</td>
+            <td style="color:blue;">${p.Leading}</td>
+            <td>${p.Total}</td>
+        </tr>
         `;
 
         labels.push(p.Party);
         values.push(p.Total);
     });
 
-    drawChart(labels, values);
+    drawCharts(labels, values);
 }
 
-let chart;
 
-function drawChart(labels, values){
-    if(chart) chart.destroy();
+// LOAD CONSTITUENCIES
+async function loadConstituencies(){
+    let res = await fetch("/api/constituencies");
+    let json = await res.json();
 
-    chart = new Chart(document.getElementById("chart"), {
+    let select = document.getElementById("constituencySelect");
+
+    select.innerHTML = `<option value="">Select Constituency</option>`;
+
+    json.data.forEach(c=>{
+        select.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+}
+
+
+// NAVIGATION
+function goToConstituency(){
+    let name = document.getElementById("constituencySelect").value;
+
+    if(name){
+        window.location = "/constituency/" + encodeURIComponent(name);
+    }
+}
+
+
+// CHARTS
+let chart1, chart2;
+
+function drawCharts(labels, values){
+    if(chart1) chart1.destroy();
+    if(chart2) chart2.destroy();
+
+    chart1 = new Chart(document.getElementById("chart1"), {
         type: "doughnut",
         data: {
             labels: labels,
-            datasets: [{
-                data: values
-            }]
+            datasets: [{ data: values }]
+        }
+    });
+
+    chart2 = new Chart(document.getElementById("chart2"), {
+        type: "pie",
+        data: {
+            labels: labels,
+            datasets: [{ data: values }]
         }
     });
 }
 
+
+// AUTO REFRESH
 setInterval(load, 15000);
+
+// INITIAL LOAD
 load();
+loadConstituencies();
+
 </script>
 
 </body>
