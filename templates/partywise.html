@@ -1,0 +1,31 @@
+<h2>Party Wise</h2>
+
+<table border="1">
+<thead>
+<tr>
+<th>Party</th><th>Total</th><th>Won</th><th>Leading</th>
+</tr>
+</thead>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+async function load(){
+    let res = await fetch("/api/partywise");
+    let json = await res.json();
+
+    let tbody = document.getElementById("data");
+
+    json.data.forEach(r=>{
+        tbody.innerHTML += `
+        <tr>
+        <td>${r.Party}</td>
+        <td>${r.Candidates}</td>
+        <td>${r.Won}</td>
+        <td>${r.Leading}</td>
+        </tr>`;
+    });
+}
+
+load();
+</script>
