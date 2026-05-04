@@ -1,46 +1,38 @@
 import streamlit as st
 import pandas as pd
-import time
 import plotly.express as px
-import numpy as np
-
 from scraper import fetch_data
 from data_utils import process_data
 from kerala_map import KERALA_MAP
-from photos import get_candidate_photo
 
 st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
-.main {
-    background-color: #0e1117;
+.card {
+    padding: 15px;
+    border-radius: 10px;
     color: white;
+    text-align: center;
+    font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🗳️ Kerala Election 2026 LIVE Tracker")
-st.markdown("### Real-time insights & analytics dashboard")
+st.title("Kerala Election 2026 Dashboard")
 
-st.markdown("<meta http-equiv='refresh' content='20'>", unsafe_allow_html=True)
+df = fetch_data()
 
-def clean_name(name):
-    return str(name).strip().title()
-
-raw_df = fetch_data()
-
-if raw_df is None or raw_df.empty:
+if df.empty:
     st.warning("No data available")
     st.stop()
 
-raw_df["Constituency"] = raw_df["Constituency"].apply(clean_name)
-
-df, winners, seat_count = process_data(raw_df)
-
 df["District"] = df["Constituency"].map(KERALA_MAP)
 
-st.sidebar.header("🔍 Filters")
+df, winners, seat_count = process_data(df)
+
+# 🔍 FILTERS
+st.sidebar.header("Filters")
 
 districts = ["All"] + sorted(df["District"].dropna().unique().tolist())
 selected_district = st.sidebar.selectbox("District", districts)
@@ -50,63 +42,85 @@ filtered_df = df.copy()
 if selected_district != "All":
     filtered_df = filtered_df[filtered_df["District"] == selected_district]
 
-parties = ["All"] + sorted(filtered_df["Party"].dropna().unique().tolist())
+parties = ["All"] + sorted(filtered_df["Party"].unique().tolist())
 selected_party = st.sidebar.selectbox("Party", parties)
 
 if selected_party != "All":
     filtered_df = filtered_df[filtered_df["Party"] == selected_party]
 
-constituencies = ["All"] + sorted(filtered_df["Constituency"].dropna().unique().tolist())
+constituencies = ["All"] + sorted(filtered_df["Constituency"].unique().tolist())
 selected_constituency = st.sidebar.selectbox("Constituency", constituencies)
 
 if selected_constituency != "All":
     filtered_df = filtered_df[filtered_df["Constituency"] == selected_constituency]
 
-st.caption(f"Last Updated: {time.strftime('%H:%M:%S')}")
+# 🔥 TOP CARDS
+st.subheader("Party Leading Status")
 
-st.subheader("Key Insights")
+card_colors = {
+    "INC": "#3498db",
+    "CPI(M)": "#e74c3c",
+    "IUML": "#2ecc71",
+    "CPI": "#c0392b",
+    "BJP": "#e67e22",
+    "Others": "#7f8c8d"
+}
 
-if not seat_count.empty:
-    st.success(f"Leading Party: {seat_count.idxmax()}")
+cols = st.columns(len(seat_count))
 
-if not winners.empty:
-    top_candidate = winners.loc[winners["Votes"].idxmax()]
-    st.info(f"Top Candidate: {top_candidate['Candidate']} ({top_candidate['Votes']} votes)")
+for i, (party, count) in enumerate(seat_count.items()):
+    color = card_colors.get(party, "#9b59b6")
+    cols[i].markdown(f"""
+        <div class="card" style="background-color:{color}">
+            {party}<br><h2>{count}</h2>
+        </div>
+    """, unsafe_allow_html=True)
 
-st.subheader("Seat Distribution")
-fig1 = px.pie(values=seat_count.values, names=seat_count.index)
-st.plotly_chart(fig1, use_container_width=True)
+# 🔥 MAIN LAYOUT
+left, right = st.columns([2, 1])
 
-st.subheader("Votes by Party")
-party_votes = df.groupby("Party")["Votes"].sum().reset_index()
-fig2 = px.bar(party_votes, x="Party", y="Votes", color="Party")
-st.plotly_chart(fig2, use_container_width=True)
+with left:
+    st.subheader("Constituency Results")
+    st.dataframe(filtered_df, use_container_width=True)
 
-st.subheader("District-wise Votes")
-district_votes = df.groupby("District")["Votes"].sum().reset_index()
-fig3 = px.bar(district_votes, x="District", y="Votes", color="Votes")
-st.plotly_chart(fig3, use_container_width=True)
+with right:
+    st.subheader("District Vote Overview")
+    district_votes = filtered_df.groupby("District")["Votes"].sum().reset_index()
 
-st.subheader("Live Results")
-st.dataframe(filtered_df, use_container_width=True)
+    fig_map = px.bar(
+        district_votes,
+        x="District",
+        y="Votes",
+        color="Votes"
+    )
+    st.plotly_chart(fig_map, use_container_width=True)
 
-st.subheader("Leading Candidates")
-st.dataframe(winners, use_container_width=True)
+# 🔥 CHARTS
+col1, col2 = st.columns(2)
 
-st.subheader("Candidate Highlights")
+with col1:
+    st.subheader("Seat Distribution")
+    fig1 = px.pie(
+        values=seat_count.values,
+        names=seat_count.index,
+        hole=0.5
+    )
+    st.plotly_chart(fig1, use_container_width=True)
 
-cols = st.columns(4)
+with col2:
+    st.subheader("Vote Share")
+    vote_share = filtered_df.groupby("Party")["Votes"].sum().reset_index()
+    fig2 = px.pie(
+        vote_share,
+        values="Votes",
+        names="Party"
+    )
+    st.plotly_chart(fig2, use_container_width=True)
 
-for i, row in winners.iterrows():
-    with cols[i % 4]:
-        img = get_candidate_photo(row["Candidate"])
-        st.image(img, width=100)
-        st.markdown(f"**{row['Candidate']}**")
-        st.write(row["Party"])
-        st.write(row["Votes"])
-        st.write(row.get("District", "N/A"))
-
-st.subheader("Vote Trend")
-
-trend = np.cumsum(np.random.randint(100, 500, 20))
-st.line_chart(trend)
+st.markdown("""
+<div style='text-align:center'>
+    <button style='background-color:#2c7be5;color:white;padding:10px 30px;border:none;border-radius:5px'>
+        All Constituencies at a glance >
+    </button>
+</div>
+""", unsafe_allow_html=True)
