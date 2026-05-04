@@ -12,7 +12,7 @@ BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/"
 # ---------------- CACHE ----------------
 CACHE = {}
 CACHE_TIME = {}
-CACHE_EXPIRY = 30  # seconds
+CACHE_EXPIRY = 30
 
 
 # ---------------- LOAD CSV ----------------
@@ -26,17 +26,14 @@ def load_data():
     return df
 
 
-# ---------------- GET CONSTITUENCY LINKS ----------------
+# ---------------- GET LINKS ----------------
 def get_constituency_links():
     try:
         url = BASE_URL + "index.htm"
 
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
 
         res = requests.get(url, headers=headers, timeout=10)
-
         soup = BeautifulSoup(res.text, "html.parser")
 
         links = {}
@@ -46,32 +43,29 @@ def get_constituency_links():
             href = a.get("href")
 
             if href and "S11" in href and ".htm" in href:
-                links[name.strip()] = href
+                links[name] = href
 
         return links
 
     except Exception as e:
-        print("Error fetching links:", e)
+        print("Link error:", e)
         return {}
 
 
-# ---------------- FETCH LIVE DATA ----------------
-def fetch_constituency_data(constituency_name):
+# ---------------- FETCH DATA ----------------
+def fetch_constituency_data(name):
     try:
-        print("Fetching:", constituency_name)
+        print("Fetching:", name)
 
         links = get_constituency_links()
-        page = links.get(constituency_name)
+        page = links.get(name)
 
         if not page:
-            print("No link found for:", constituency_name)
             return None
 
         url = BASE_URL + page
 
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        headers = {"User-Agent": "Mozilla/5.0"}
 
         res = requests.get(url, headers=headers, timeout=10)
 
@@ -88,8 +82,8 @@ def fetch_constituency_data(constituency_name):
 
             if len(cols) >= 4:
                 data.append({
-                    "Candidate_Name": cols[0].strip().lower(),
-                    "Party": cols[1].strip().lower(),
+                    "Candidate_Name": cols[0].lower(),
+                    "Party": cols[1].lower(),
                     "Votes": cols[2],
                     "Status": cols[3]
                 })
@@ -97,17 +91,16 @@ def fetch_constituency_data(constituency_name):
         return data
 
     except Exception as e:
-        print("Error fetching constituency:", e)
+        print("Fetch error:", e)
         return None
 
 
-# ---------------- CACHE WRAPPER ----------------
+# ---------------- CACHE ----------------
 def get_cached_data(name):
     now = time.time()
 
-    if name in CACHE:
-        if now - CACHE_TIME[name] < CACHE_EXPIRY:
-            return CACHE[name]
+    if name in CACHE and (now - CACHE_TIME[name] < CACHE_EXPIRY):
+        return CACHE[name]
 
     data = fetch_constituency_data(name)
 
@@ -119,20 +112,9 @@ def get_cached_data(name):
 
 # ---------------- ROUTES ----------------
 
-# 🔥 DASHBOARD AS HOME
 @app.route("/")
 def home():
     return render_template("dashboard.html")
-
-
-@app.route("/candidates")
-def candidates_page():
-    return render_template("candidates.html")
-
-
-@app.route("/partywise")
-def partywise_page():
-    return render_template("partywise.html")
 
 
 @app.route("/constituency/<name>")
@@ -144,7 +126,6 @@ def constituency_page(name):
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
     df = load_data()
-
     df = df[df["Constituency_Name"] == name]
 
     live_data = get_cached_data(name)
@@ -152,15 +133,10 @@ def api_constituency(name):
     if live_data:
         live_df = pd.DataFrame(live_data)
 
-        live_df["Candidate_Name"] = live_df["Candidate_Name"].astype(str).str.strip().str.lower()
-        live_df["Party"] = live_df["Party"].astype(str).str.strip().str.lower()
+        live_df["Candidate_Name"] = live_df["Candidate_Name"].str.strip().str.lower()
+        live_df["Party"] = live_df["Party"].str.strip().str.lower()
 
-        merged = pd.merge(
-            df,
-            live_df,
-            on=["Candidate_Name", "Party"],
-            how="left"
-        )
+        merged = pd.merge(df, live_df, on=["Candidate_Name", "Party"], how="left")
 
         merged["Votes"] = merged["Votes"].fillna("0")
         merged["Status"] = merged["Status"].fillna("NA")
@@ -186,35 +162,44 @@ def party_summary():
     df = load_data()
 
     all_data = []
-
     constituencies = df["Constituency_Name"].unique()
 
     for c in constituencies:
         live = get_cached_data(c)
-
         if live:
-            for r in live:
-                all_data.append(r)
+            all_data.extend(live)
 
-    if not all_data:
-        return jsonify({"dummy": True, "data": []})
+    # ✅ IF LIVE DATA EXISTS
+    if len(all_data) > 0:
+        live_df = pd.DataFrame(all_data)
 
-    live_df = pd.DataFrame(all_data)
+        live_df["Party"] = live_df["Party"].astype(str).str.strip().str.upper()
+        live_df["Status"] = live_df["Status"].astype(str).str.lower()
 
-    live_df["Party"] = live_df["Party"].str.strip().str.upper()
-    live_df["Status"] = live_df["Status"].str.lower()
+        summary = live_df.groupby("Party").agg(
+            Won=("Status", lambda x: (x == "won").sum()),
+            Leading=("Status", lambda x: (x == "leading").sum())
+        ).reset_index()
 
-    summary = live_df.groupby("Party").agg(
-        Won=("Status", lambda x: (x == "won").sum()),
-        Leading=("Status", lambda x: (x == "leading").sum())
-    ).reset_index()
+        summary["Total"] = summary["Won"] + summary["Leading"]
 
-    summary["Total"] = summary["Won"] + summary["Leading"]
+        return jsonify({
+            "dummy": False,
+            "data": summary.to_dict(orient="records")
+        })
 
-    return jsonify({
-        "dummy": False,
-        "data": summary.to_dict(orient="records")
-    })
+    # ✅ FALLBACK (NO BLANK PAGE)
+    else:
+        df["Party"] = df["Party"].str.upper()
+
+        summary = df.groupby("Party").size().reset_index(name="Total")
+        summary["Won"] = 0
+        summary["Leading"] = 0
+
+        return jsonify({
+            "dummy": True,
+            "data": summary.to_dict(orient="records")
+        })
 
 
 # ---------------- API: CONSTITUENCIES ----------------
@@ -229,4 +214,4 @@ def get_constituencies():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
