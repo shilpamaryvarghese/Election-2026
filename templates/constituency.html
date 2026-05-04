@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Constituency</title>
+    <title>Constituency Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -20,11 +20,15 @@
 
 <h2>{{name}}</h2>
 
+<!-- ✅ STATUS MESSAGE -->
+<p id="status" style="font-weight: bold; color: red;"></p>
+
 <table>
 <thead>
 <tr>
 <th>Candidate</th>
 <th>Party</th>
+<th>Votes</th>
 <th>Status</th>
 </tr>
 </thead>
@@ -41,6 +45,10 @@ async function load(){
     let res = await fetch(`/api/constituency/${name}`);
     let json = await res.json();
 
+    // ✅ SHOW LIVE OR DUMMY STATUS
+    document.getElementById("status").innerText =
+        json.dummy ? "⚠️ Showing Dummy Data" : "✅ Live Data";
+
     let tbody = document.getElementById("data");
     tbody.innerHTML = "";
 
@@ -49,12 +57,16 @@ async function load(){
         <tr>
         <td>${r.Candidate_Name}</td>
         <td>${r.Party}</td>
+        <td>${r.Votes}</td>
         <td>${r.Status}</td>
         </tr>`;
     });
 }
 
+// 🔄 AUTO REFRESH EVERY 10 SEC
 setInterval(load, 10000);
+
+// INITIAL LOAD
 load();
 </script>
 
