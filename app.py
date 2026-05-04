@@ -7,7 +7,7 @@ import time
 app = Flask(__name__)
 
 CSV_FILE = "kerala_2026_candidates.csv"
-BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/"
+BASE_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 
 # ---------------- CACHE ----------------
 CACHE = {}
