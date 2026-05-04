@@ -1,41 +1,37 @@
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 
-MAIN_API = "https://edata.ndtv.com/feeds/elex/2026/electionswidget2026.json"
-WINNER_API = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
+URL = "https://results.eci.gov.in/"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0"
+}
 
 def fetch_data():
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(URL, headers=HEADERS, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
 
-        main_res = requests.get(MAIN_API, headers=headers).json()
-        winner_res = requests.get(WINNER_API, headers=headers).json()
+        rows = soup.find_all("tr")
 
-        main_data = main_res.get("data", main_res)
-        winner_data = winner_res.get("data", winner_res)
+        data = []
+        for row in rows:
+            cols = [c.text.strip() for c in row.find_all("td")]
+            if len(cols) >= 4:
+                data.append(cols[:4])
 
-        winner_map = {}
-        for w in winner_data:
-            constituency = w.get("constituency") or w.get("seat")
-            winner_map[constituency] = {
-                "Candidate": w.get("candidate"),
-                "Party": w.get("party")
-            }
+        df = pd.DataFrame(data, columns=[
+            "Constituency", "Candidate", "Party", "Votes"
+        ])
 
-        records = []
+        df["Votes"] = pd.to_numeric(df["Votes"], errors="coerce").fillna(0)
 
-        for item in main_data:
-            constituency = item.get("constituency") or item.get("seat")
+        df = df.dropna(subset=["Constituency", "Party"])
 
-            records.append({
-                "Constituency": constituency,
-                "Candidate": winner_map.get(constituency, {}).get("Candidate", "N/A"),
-                "Party": winner_map.get(constituency, {}).get("Party", "N/A"),
-                "Votes": item.get("votes") or item.get("total_votes", 0)
-            })
-
-        df = pd.DataFrame(records)
         df["Constituency"] = df["Constituency"].astype(str).str.strip()
+        df["Candidate"] = df["Candidate"].astype(str).str.strip()
+        df["Party"] = df["Party"].astype(str).str.strip()
 
         return df
 
