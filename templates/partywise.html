@@ -1,13 +1,37 @@
-<h2>Party Wise</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Party Wise</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
 
-<table border="1">
+<div class="header">
+    <h1>Party Wise Results</h1>
+</div>
+
+<div class="navbar">
+    <a href="/">Home</a>
+    <a href="/candidates">Candidates</a>
+    <a href="/partywise">Party Wise</a>
+</div>
+
+<div class="container">
+
+<table>
 <thead>
 <tr>
-<th>Party</th><th>Total</th><th>Won</th><th>Leading</th>
+<th>Party</th>
+<th>Total Candidates</th>
+<th>Won</th>
+<th>Leading</th>
 </tr>
 </thead>
+
 <tbody id="data"></tbody>
 </table>
+
+</div>
 
 <script>
 async function load(){
@@ -15,6 +39,7 @@ async function load(){
     let json = await res.json();
 
     let tbody = document.getElementById("data");
+    tbody.innerHTML = "";
 
     json.data.forEach(r=>{
         tbody.innerHTML += `
@@ -27,5 +52,9 @@ async function load(){
     });
 }
 
+setInterval(load, 10000);
 load();
 </script>
+
+</body>
+</html>
