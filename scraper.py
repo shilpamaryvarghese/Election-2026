@@ -1,16 +1,36 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
+import requests
+import pandas as pd
 
-driver = webdriver.Chrome()
-driver.get("https://www.ndtv.com/elections/kerala/results-2026")
+URL = "https://data.ndtv.com/elections/2026/WinnerCandidates_VS_KER.json"
 
-time.sleep(5)
+def fetch_ndtv_results():
+    try:
+        res = requests.get(URL, timeout=10)
+        data = res.json()
 
-cards = driver.find_elements(By.CLASS_NAME, "candidate-card")
+        results = []
 
-for card in cards:
-    name = card.text
-    print(name)
+        for item in data:
+            constituency = item.get("constituency_name")
+            candidate = item.get("candidate_name")
+            party = item.get("party_name")
+            status = item.get("status")  # Leading / Won
 
-driver.quit()
+            results.append({
+                "Constituency": constituency,
+                "Candidate": candidate,
+                "Party": party,
+                "Status": status
+            })
+
+        df = pd.DataFrame(results)
+        return df
+
+    except Exception as e:
+        print("Error:", e)
+        return pd.DataFrame()
+
+
+if __name__ == "__main__":
+    df = fetch_ndtv_results()
+    print(df.head())
