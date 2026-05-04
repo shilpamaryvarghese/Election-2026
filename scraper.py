@@ -1,10 +1,10 @@
 import requests
 import pandas as pd
 
-URL = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
+NDTV_URL = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
 
 
-def fallback_data():
+def fallback():
     return pd.DataFrame([
         {
             "Constituency": "Manjeshwar",
@@ -17,14 +17,14 @@ def fallback_data():
             "Constituency": "Kasaragod",
             "Candidate": "Candidate B",
             "Party": "UDF",
-            "Votes": 10800,
+            "Votes": 11200,
             "Status": "Leading"
         },
         {
             "Constituency": "Udma",
             "Candidate": "Candidate C",
             "Party": "NDA",
-            "Votes": 9200,
+            "Votes": 8600,
             "Status": "Leading"
         }
     ])
@@ -36,15 +36,19 @@ def fetch_data():
             "User-Agent": "Mozilla/5.0"
         }
 
-        res = requests.get(URL, headers=headers, timeout=8)
+        response = requests.get(
+            NDTV_URL,
+            headers=headers,
+            timeout=6
+        )
 
-        if res.status_code != 200:
-            return fallback_data()
+        if response.status_code != 200:
+            return fallback()
 
-        data = res.json()
+        data = response.json()
 
         if not isinstance(data, list):
-            return fallback_data()
+            return fallback()
 
         rows = []
 
@@ -60,14 +64,14 @@ def fetch_data():
         df = pd.DataFrame(rows)
 
         if df.empty:
-            return fallback_data()
+            return fallback()
 
         df = df[df["Constituency"] != ""]
 
         if df.empty:
-            return fallback_data()
+            return fallback()
 
         return df
 
     except Exception:
-        return fallback_data()
+        return fallback()
