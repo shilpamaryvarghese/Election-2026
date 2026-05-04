@@ -105,7 +105,7 @@ function getColor(party){
 
 // LOAD DATA
 async function loadData(){
-    let res = await fetch("/api/partywise");
+    let res = await fetch("/partywise");
     let json = await res.json();
     data = json.data;
 
