@@ -7,9 +7,29 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-body { margin:0; font-family:Arial; }
+body { margin:0; font-family:Arial; background:#f4f6fb; }
 
-.container { display:flex; height:100vh; }
+/* TOP BAR */
+.topbar {
+    display:flex;
+    justify-content:space-around;
+    padding:10px;
+    background:white;
+    border-bottom:2px solid #ddd;
+}
+
+.topcard {
+    text-align:center;
+    padding:10px;
+}
+
+.UDF { color:#1e90ff; }
+.LDF { color:#e74c3c; }
+.NDA { color:#f39c12; }
+.OTH { color:#555; }
+
+/* LAYOUT */
+.container { display:flex; height:90vh; }
 
 #map { width:60%; }
 
@@ -17,32 +37,71 @@ body { margin:0; font-family:Arial; }
     width:40%;
     padding:20px;
     overflow:auto;
-    background:#f4f6fb;
 }
 
+/* SEARCH */
 input, select {
     width:100%;
     padding:10px;
     margin:10px 0;
 }
 
+/* CARD */
 .card {
     background:white;
     padding:10px;
     margin:10px 0;
     border-radius:8px;
+    animation: fadeIn 0.5s;
+}
+
+/* LEGEND */
+.legend {
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    background:white;
+    padding:10px;
+    border-radius:8px;
+    font-size:14px;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from {opacity:0;}
+    to {opacity:1;}
 }
 </style>
 </head>
 
 <body>
 
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topcard UDF">
+        <h3>UDF</h3>
+        <h1 id="udfSeats">0</h1>
+    </div>
+    <div class="topcard LDF">
+        <h3>LDF</h3>
+        <h1 id="ldfSeats">0</h1>
+    </div>
+    <div class="topcard NDA">
+        <h3>NDA</h3>
+        <h1 id="ndaSeats">0</h1>
+    </div>
+    <div class="topcard OTH">
+        <h3>Others</h3>
+        <h1 id="othSeats">0</h1>
+    </div>
+</div>
+
 <div class="container">
 
     <!-- MAP -->
     <div id="map"></div>
 
-    <!-- SIDE PANEL -->
+    <!-- SIDEBAR -->
     <div class="sidebar">
 
         <h2>Search</h2>
@@ -56,12 +115,20 @@ input, select {
         <div id="results"></div>
 
     </div>
+</div>
 
+<!-- LEGEND -->
+<div class="legend">
+    <b>Legend</b><br>
+    🔵 UDF<br>
+    🔴 LDF<br>
+    🟠 NDA<br>
+    ⚪ Others
 </div>
 
 <script>
 
-// INIT MAP
+// MAP INIT
 let map = L.map('map').setView([10.5, 76.2], 7);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
@@ -87,12 +154,14 @@ function getColor(a){
 }
 
 
-// LOAD MAP
+// LOAD MAP + HOVER + SEATS
 async function loadMap(){
 
     let geo = await fetch("/static/kerala.geojson").then(r=>r.json());
     let api = await fetch("https://api.opendatakerala.org/api/kla2026/results/all.json")
                 .then(r=>r.json());
+
+    let udf=0, ldf=0, nda=0, oth=0;
 
     L.geoJSON(geo, {
 
@@ -106,25 +175,51 @@ async function loadMap(){
 
             let winner = candidates.find(c => c.status.toLowerCase() === "won");
 
-            if(!winner){
-                let leading = candidates.find(c => c.status.toLowerCase() === "leading");
-                if(leading){
-                    return { fillColor: getColor(getAlliance(leading.party)), weight:1, color:"#333", fillOpacity:0.7 };
-                }
-            }
+            let alliance = "Others";
 
             if(winner){
-                return { fillColor: getColor(getAlliance(winner.party)), weight:1, color:"#333", fillOpacity:0.9 };
+                alliance = getAlliance(winner.party);
+            } else {
+                let lead = candidates.find(c => c.status.toLowerCase() === "leading");
+                if(lead) alliance = getAlliance(lead.party);
             }
 
-            return { fillColor:"#ccc", weight:1, color:"#333", fillOpacity:0.5 };
+            // COUNT SEATS
+            if(winner){
+                if(alliance==="UDF") udf++;
+                else if(alliance==="LDF") ldf++;
+                else if(alliance==="NDA") nda++;
+                else oth++;
+            }
+
+            return {
+                fillColor: getColor(alliance),
+                weight:1,
+                color:"#333",
+                fillOpacity:0.8
+            };
         },
 
         onEachFeature: function(feature, layer){
 
             let name = feature.properties.AC_NAME;
 
-            layer.bindTooltip(name);
+            let candidates = api.filter(d =>
+                d.constituency.toLowerCase() === name.toLowerCase()
+            );
+
+            let winner = candidates.find(c => c.status.toLowerCase() === "won") || candidates[0];
+
+            // HOVER POPUP
+            if(winner){
+                layer.bindPopup(`
+                    <b>${name}</b><br>
+                    ${winner.candidate}<br>
+                    ${winner.party}<br>
+                    Votes: ${winner.votes}<br>
+                    Status: ${winner.status}
+                `);
+            }
 
             layer.on("click", function(){
                 document.getElementById("constituencySelect").value = name;
@@ -133,12 +228,18 @@ async function loadMap(){
         }
 
     }).addTo(map);
+
+    // UPDATE TOP BAR
+    document.getElementById("udfSeats").innerText = udf;
+    document.getElementById("ldfSeats").innerText = ldf;
+    document.getElementById("ndaSeats").innerText = nda;
+    document.getElementById("othSeats").innerText = oth;
 }
 
 loadMap();
 
 
-// LOAD CONSTITUENCIES
+// DROPDOWN
 async function loadConstituencies(){
     let res = await fetch("/api/constituencies");
     let json = await res.json();
@@ -149,7 +250,6 @@ async function loadConstituencies(){
         select.innerHTML += `<option value="${c}">${c}</option>`;
     });
 }
-
 loadConstituencies();
 
 
@@ -177,7 +277,7 @@ async function loadConstituencyData(){
 }
 
 
-// SEARCH FILTER
+// SEARCH
 document.getElementById("searchBox").addEventListener("keyup", function(){
     let val = this.value.toLowerCase();
 
@@ -193,7 +293,7 @@ document.getElementById("searchBox").addEventListener("keyup", function(){
 });
 
 
-// AUTO REFRESH MAP
+// AUTO REFRESH
 setInterval(()=>{
     map.eachLayer(layer=>{
         if(layer instanceof L.GeoJSON){
