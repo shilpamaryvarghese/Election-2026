@@ -67,7 +67,7 @@ def fallback_data():
 # =========================
 # PAGE ROUTES
 # =========================
-@app.route("/")
+@app.route("/summary")
 def home():
     return render_template("index.html")
 
