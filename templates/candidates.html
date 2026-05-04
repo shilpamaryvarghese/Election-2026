@@ -2,34 +2,267 @@
 <html>
 <head>
 <title>Candidate Search</title>
+
+<link rel="stylesheet" href="/static/style.css">
+
+<style>
+
+.container {
+    padding: 20px;
+}
+
+.search-area {
+    display: flex;
+    gap: 10px;
+    max-width: 500px;
+    margin-bottom: 20px;
+}
+
+.search-area input {
+    flex: 1;
+}
+
+/* RESULTS GRID */
+.results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+/* CARD */
+.candidate-card {
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: 0.3s;
+    animation: fadeIn 0.5s ease;
+}
+
+.candidate-card:hover {
+    transform: translateY(-5px);
+}
+
+/* TOP SECTION */
+.card-top {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.photo {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* TEXT */
+.name {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.party {
+    font-weight: 600;
+}
+
+.const {
+    font-size: 13px;
+    color: #555;
+}
+
+.votes {
+    margin-top: 10px;
+}
+
+/* BAR */
+.bar {
+    margin-top: 10px;
+    height: 18px;
+    background: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.fill {
+    height: 100%;
+    color: white;
+    font-size: 12px;
+    text-align: right;
+    padding-right: 5px;
+    line-height: 18px;
+    transition: width 1s ease;
+}
+
+/* STATUS */
+.status {
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+/* STATUS COLORS */
+.winner {
+    border-left: 6px solid #28a745;
+}
+
+.leading {
+    border-left: 6px solid #ffc107;
+}
+
+.other {
+    border-left: 6px solid #ccc;
+}
+
+/* NO RESULT */
+.no-result {
+    text-align: center;
+    padding: 30px;
+    font-size: 18px;
+    color: #888;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h2>Search Candidate</h2>
+<div class="navbar">
+    <h2>Kerala Election 2026</h2>
 
-<input id="search" placeholder="Enter name">
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
+    </div>
+</div>
 
-<div id="results"></div>
+<div class="container">
+
+<h2 class="page-title">Candidate Search</h2>
+
+<div class="search-area">
+    <input type="text" id="searchInput" placeholder="Search candidate, party, constituency...">
+    <button class="btn" onclick="searchCandidate()">Search</button>
+</div>
+
+<div id="results" class="results"></div>
+
+</div>
 
 <script>
-document.getElementById("search").addEventListener("keyup", async function(){
 
-    let q = this.value;
+let fullData = [];
 
-    if(q.length < 2) return;
-
-    let res = await fetch("/api/search/"+q);
+// LOAD DATA
+async function loadData(){
+    let res = await fetch("/api/results");
     let json = await res.json();
+    fullData = json.data;
+}
 
-    let div = document.getElementById("results");
-    div.innerHTML="";
+loadData();
 
-    json.data.forEach(r=>{
-        div.innerHTML += `<p>${r.candidate} - ${r.votes}</p>`;
+
+// PHOTO FUNCTION (fallback avatar)
+function getPhoto(name){
+    return "https://ui-avatars.com/api/?name=" + encodeURIComponent(name) + "&background=random";
+}
+
+
+// SEARCH FUNCTION
+function searchCandidate(){
+
+    let value = document.getElementById("searchInput").value.trim().toLowerCase();
+    let container = document.getElementById("results");
+
+    container.innerHTML = "";
+
+    if(!value){
+        container.innerHTML = "<div class='no-result'>Please enter a search term</div>";
+        return;
+    }
+
+    let filtered = fullData.filter(r =>
+        (r.Candidate || "").toLowerCase().includes(value) ||
+        (r.Party || "").toLowerCase().includes(value) ||
+        (r.Constituency || "").toLowerCase().includes(value)
+    );
+
+    if(filtered.length === 0){
+        container.innerHTML = "<div class='no-result'>❌ Candidate not found</div>";
+        return;
+    }
+
+    filtered.forEach(r => {
+
+        let percent = r.Percent ? parseFloat(r.Percent).toFixed(1) : 0;
+
+        let statusClass = "other";
+        if((r.Status || "").toLowerCase() === "won") statusClass = "winner";
+        else if((r.Status || "").toLowerCase() === "leading") statusClass = "leading";
+
+        // PARTY COLORS
+        let partyColor = "#999";
+
+        if(r.Party.includes("INC")) partyColor = "#1e90ff";
+        else if(r.Party.includes("CPM") || r.Party.includes("CPI")) partyColor = "#ff4b2b";
+        else if(r.Party.includes("BJP")) partyColor = "#f7971e";
+
+        let card = `
+        <div class="candidate-card ${statusClass}" onclick="goTo('${r.Constituency}')">
+
+            <div class="card-top">
+                <img src="${getPhoto(r.Candidate)}" class="photo">
+                
+                <div>
+                    <div class="name">${r.Candidate}</div>
+                    <div class="party" style="color:${partyColor}">${r.Party}</div>
+                    <div class="const">📍 ${r.Constituency}</div>
+                </div>
+            </div>
+
+            <div class="votes">Votes: ${r.Total}</div>
+
+            <div class="bar">
+                <div class="fill" style="width:${percent}%; background:${partyColor}">
+                    ${percent}%
+                </div>
+            </div>
+
+            <div class="status">${r.Status || ""}</div>
+
+        </div>
+        `;
+
+        container.innerHTML += card;
     });
+}
 
+
+// REDIRECT
+function goTo(name){
+    window.location.href = "/constituency?name=" + encodeURIComponent(name);
+}
+
+
+// ENTER KEY SUPPORT
+document.getElementById("searchInput").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        searchCandidate();
+    }
 });
+
 </script>
 
 </body>
