@@ -5,12 +5,11 @@ import time
 
 app = Flask(__name__)
 
-# ---------------- FILE + API ----------------
 CSV_FILE = "kerala_2026_candidates.csv"
+
 RESULT_API = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 HIT_API = "https://api.opendatakerala.org/api/kla2026/hitcounter"
 
-# ---------------- CACHE ----------------
 CACHE = None
 CACHE_TIME = 0
 CACHE_EXPIRY = 30
@@ -21,12 +20,9 @@ def load_csv():
     try:
         df = pd.read_csv(CSV_FILE)
 
-        # CLEAN DATA
         df["Candidate_Name"] = df["Candidate_Name"].astype(str).str.strip().str.lower()
         df["Party"] = df["Party"].astype(str).str.strip().str.lower()
         df["Constituency_Name"] = df["Constituency_Name"].astype(str).str.strip()
-
-        df = df.dropna(subset=["Constituency_Name"])
 
         return df
 
@@ -50,7 +46,6 @@ def fetch_data():
 # ---------------- CACHE ----------------
 def get_data():
     global CACHE, CACHE_TIME
-
     now = time.time()
 
     if CACHE and (now - CACHE_TIME < CACHE_EXPIRY):
@@ -66,15 +61,9 @@ def get_data():
 
 
 # ---------------- ROUTES ----------------
-
 @app.route("/")
 def home():
     return render_template("dashboard.html")
-
-
-@app.route("/constituency/<name>")
-def constituency(name):
-    return render_template("constituency.html", name=name)
 
 
 # ---------------- API: PARTY SUMMARY ----------------
@@ -87,8 +76,8 @@ def party_summary():
 
     df = pd.DataFrame(data)
 
-    df["party"] = df["party"].astype(str).str.upper()
-    df["status"] = df["status"].astype(str).str.lower()
+    df["party"] = df["party"].str.upper()
+    df["status"] = df["status"].str.lower()
 
     summary = df.groupby("party").agg(
         Won=("status", lambda x: (x == "won").sum()),
@@ -98,7 +87,6 @@ def party_summary():
     summary["Total"] = summary["Won"] + summary["Leading"]
 
     return jsonify({
-        "dummy": False,
         "data": summary.rename(columns={"party": "Party"}).to_dict(orient="records")
     })
 
@@ -115,16 +103,13 @@ def api_constituency(name):
         csv_df["Votes"] = 0
         csv_df["Status"] = "Dummy"
 
-        return jsonify({
-            "dummy": True,
-            "data": csv_df.to_dict(orient="records")
-        })
+        return jsonify({"data": csv_df.to_dict(orient="records")})
 
     api_df = pd.DataFrame(api_data)
 
-    api_df["candidate"] = api_df["candidate"].astype(str).str.strip().str.lower()
-    api_df["party"] = api_df["party"].astype(str).str.strip().str.lower()
-    api_df["constituency"] = api_df["constituency"].astype(str).str.strip()
+    api_df["candidate"] = api_df["candidate"].str.lower()
+    api_df["party"] = api_df["party"].str.lower()
+    api_df["constituency"] = api_df["constituency"].str.strip()
 
     api_df = api_df[api_df["constituency"].str.lower() == name.lower()]
 
@@ -139,23 +124,17 @@ def api_constituency(name):
     merged["Votes"] = merged["votes"].fillna(0)
     merged["Status"] = merged["status"].fillna("NA")
 
-    return jsonify({
-        "dummy": False,
-        "data": merged.to_dict(orient="records")
-    })
+    return jsonify({"data": merged.to_dict(orient="records")})
 
 
-# ---------------- API: CONSTITUENCIES (CSV) ----------------
+# ---------------- API: CONSTITUENCIES ----------------
 @app.route("/api/constituencies")
 def get_constituencies():
     df = load_csv()
 
-    if df.empty:
-        return jsonify({"data": []})
-
-    constituencies = sorted(df["Constituency_Name"].dropna().unique())
-
-    return jsonify({"data": constituencies})
+    return jsonify({
+        "data": sorted(df["Constituency_Name"].unique())
+    })
 
 
 # ---------------- API: HIT COUNTER ----------------
@@ -163,8 +142,6 @@ def get_constituencies():
 def hitcount():
     try:
         res = requests.get(HIT_API, timeout=5)
-        if res.status_code != 200:
-            return jsonify({"count": 0})
         return jsonify(res.json())
     except:
         return jsonify({"count": 0})
