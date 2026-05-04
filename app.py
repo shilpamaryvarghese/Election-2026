@@ -23,7 +23,7 @@ st.title("🗳️ Kerala Election 2026 - LIVE Dashboard")
 
 # 🔄 Auto refresh every 15 sec (SAFE)
 st.markdown(
-    "<meta http-equiv='refresh' content='15'>",
+    "<meta http-equiv='refresh' content='60'>",
     unsafe_allow_html=True
 )
 
