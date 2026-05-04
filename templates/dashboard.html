@@ -1,46 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Election Dashboard</title>
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial; background:#f4f4f4; }
-
-h2 { padding:20px; }
-
-table {
-    width: 95%;
-    margin: auto;
-    border-collapse: collapse;
-    background: white;
-}
-
-th {
-    background: #0b3d91;
-    color: white;
-    padding: 10px;
-}
-
-td {
-    padding: 8px;
-    border: 1px solid #ddd;
-}
-
-tr:nth-child(even) {
-    background: #f2f2f2;
-}
-
-.winner {
-    background: #d4edda !important;
-    font-weight: bold;
-}
+body { font-family: Arial; }
+table { width:100%; border-collapse: collapse; }
+th { background:#0b3d91; color:white; }
+td,th { padding:8px; border:1px solid #ddd; }
 </style>
-
 </head>
 
 <body>
 
-<h2>Candidate Wise Results (ECI Style)</h2>
+<h2>Live Results</h2>
+
+<input id="search" placeholder="Search candidate..." />
 
 <table>
 <thead>
@@ -48,50 +24,44 @@ tr:nth-child(even) {
 <th>Constituency</th>
 <th>Candidate</th>
 <th>Party</th>
-<th>EVM</th>
-<th>Postal</th>
 <th>Total</th>
 <th>%</th>
 </tr>
 </thead>
-
-<tbody id="tableBody">
-<tr><td colspan="7">Loading...</td></tr>
-</tbody>
-
+<tbody id="body"></tbody>
 </table>
 
 <script>
 
-async function loadData(){
-
-    let tbody = document.getElementById("tableBody");
+async function load(){
 
     let res = await fetch("/api/results");
     let json = await res.json();
 
+    let tbody = document.getElementById("body");
     tbody.innerHTML = "";
 
-    json.data.forEach(r => {
-
-        let percent = parseFloat(r.Percent) || 0;
-
-        let cls = percent > 40 ? "winner" : "";
-
+    json.data.forEach(r=>{
         tbody.innerHTML += `
-        <tr class="${cls}">
+        <tr>
             <td>${r.Constituency}</td>
             <td>${r.Candidate}</td>
             <td>${r.Party}</td>
-            <td>${r.EVM}</td>
-            <td>${r.Postal}</td>
-            <td><b>${r.Total}</b></td>
+            <td>${r.Total}</td>
             <td>${r.Percent}</td>
         </tr>`;
     });
 }
 
-loadData();
+document.getElementById("search").addEventListener("keyup", function(){
+    let val = this.value.toLowerCase();
+    document.querySelectorAll("#body tr").forEach(row=>{
+        row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+    });
+});
+
+setInterval(load, 15000);
+load();
 
 </script>
 
