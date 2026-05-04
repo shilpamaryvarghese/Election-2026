@@ -1,60 +1,71 @@
 from flask import Flask, jsonify, render_template
 import requests
-import time
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
-# 🔗 API LINKS
-BASE_NEW = "https://api.opendatakerala.org/api/lsg2026"
-BASE_OLD = "https://api.opendatakerala.org/api/lsg2025"
-
-# 🔥 CACHE (prevents too many API calls)
-CACHE = {"data": None, "time": 0}
-CACHE_EXPIRY = 20
-
+# =========================
+# ECI URL
+# =========================
+ECI_URL = "https://results.eci.gov.in/ResultAcGenMay2026/statewiseS111.htm"
 
 # =========================
-# FETCH API (AUTO SWITCH)
+# FETCH ECI DATA
 # =========================
-def fetch_api(endpoint):
-
-    # ✅ use cache
-    if time.time() - CACHE["time"] < CACHE_EXPIRY:
-        return CACHE["data"]
-
-    # 🔹 Try 2026
+def fetch_eci_data():
     try:
-        url = f"{BASE_NEW}/{endpoint}"
-        res = requests.get(url, timeout=5)
+        res = requests.get(ECI_URL, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
 
-        if res.status_code == 200:
-            print("Using 2026 API")
-            data = res.json()
-            CACHE["data"] = data
-            CACHE["time"] = time.time()
-            return data
-    except:
-        pass
+        table = soup.find("table")
 
-    # 🔹 Fallback 2025
-    try:
-        url = f"{BASE_OLD}/{endpoint}"
-        res = requests.get(url, timeout=5)
+        if not table:
+            return []
 
-        if res.status_code == 200:
-            print("Using 2025 API")
-            data = res.json()
-            CACHE["data"] = data
-            CACHE["time"] = time.time()
-            return data
-    except:
-        pass
+        rows = table.find_all("tr")[1:]
 
-    return {"data": []}
+        data = []
+
+        for row in rows:
+            cols = row.find_all("td")
+
+            if len(cols) < 8:
+                continue
+
+            data.append({
+                "Constituency": cols[0].text.strip(),
+                "ConstNo": cols[1].text.strip(),
+                "LeadingCandidate": cols[2].text.strip(),
+                "LeadingParty": cols[3].text.strip(),
+                "TrailingCandidate": cols[4].text.strip(),
+                "TrailingParty": cols[5].text.strip(),
+                "Margin": cols[6].text.strip(),
+                "Status": cols[7].text.strip()
+            })
+
+        return data
+
+    except Exception as e:
+        print("ECI ERROR:", e)
+        return []
 
 
 # =========================
-# PAGE ROUTES (IMPORTANT)
+# FALLBACK API
+# =========================
+def fallback_data():
+    try:
+        url = "https://api.opendatakerala.org/api/lsg2025/results/all.json"
+        res = requests.get(url)
+        data = res.json()
+
+        return data if isinstance(data, list) else data.get("data", [])
+    except:
+        return []
+
+
+# =========================
+# PAGE ROUTES
 # =========================
 @app.route("/")
 def home():
@@ -65,97 +76,82 @@ def dashboard():
     return render_template("dashboard.html")
 
 @app.route("/constituency")
-def constituency_page():
+def constituency():
     return render_template("constituency.html")
 
 @app.route("/partywise")
-def partywise_page():
+def partywise():
     return render_template("partywise.html")
 
 @app.route("/candidates")
-def candidates_page():
+def candidates():
     return render_template("candidates.html")
 
 
 # =========================
-# API: RESULTS
+# MAIN RESULTS API
 # =========================
 @app.route("/api/results")
 def results():
 
-    data = fetch_api("results/all.json")
+    data = fetch_eci_data()
+
+    # fallback if empty
+    if not data:
+        data = fallback_data()
 
     output = []
 
-    for r in data.get("data", []):
-        output.append({
-            "Constituency": r.get("constituency",""),
-            "Candidate": r.get("candidate",""),
-            "Party": r.get("party",""),
-            "Total": int(r.get("votes",0)),
-            "Percent": r.get("percentage",0)
-        })
+    for r in data:
+
+        # If ECI format
+        if "LeadingCandidate" in r:
+            output.append({
+                "Constituency": r["Constituency"],
+                "Candidate": r["LeadingCandidate"],
+                "Party": r["LeadingParty"],
+                "Total": r["Margin"],
+                "Percent": 0,
+                "Status": r["Status"]
+            })
+
+        else:
+            output.append({
+                "Constituency": r.get("constituency",""),
+                "Candidate": r.get("candidate",""),
+                "Party": r.get("party",""),
+                "Total": int(r.get("votes",0)),
+                "Percent": float(r.get("percentage",0)),
+                "Status": r.get("status","")
+            })
 
     return jsonify({"data": output})
 
 
 # =========================
-# API: SUMMARY
-# =========================
-@app.route("/api/summary")
-def summary():
-
-    data = fetch_api("summary")
-
-    result = []
-
-    for r in data.get("data", []):
-        result.append({
-            "Alliance": r.get("alliance","Others"),
-            "Seats": int(r.get("seats",0)),
-            "Votes": int(r.get("votes",0))
-        })
-
-    return jsonify({"data": result})
-
-
-# =========================
-# API: PARTYWISE
-# =========================
-@app.route("/api/partywise")
-def partywise():
-
-    data = fetch_api("partywise")
-
-    result = []
-
-    for r in data.get("data", []):
-        result.append({
-            "party": r.get("party",""),
-            "seats": int(r.get("seats",0)),
-            "votes": int(r.get("votes",0))
-        })
-
-    return jsonify({"data": result})
-
-
-# =========================
-# API: CONSTITUENCY FILTER
+# CONSTITUENCY API
 # =========================
 @app.route("/api/constituency/<name>")
-def constituency(name):
+def constituency_data(name):
 
-    data = fetch_api("results/all.json")
+    data = fetch_eci_data()
+
+    if not data:
+        data = fallback_data()
 
     filtered = []
 
-    for r in data.get("data", []):
-        if r.get("constituency","").lower() == name.lower():
+    for r in data:
+
+        cname = r.get("Constituency") or r.get("constituency")
+
+        if cname and cname.lower() == name.lower():
+
             filtered.append({
-                "Candidate": r.get("candidate",""),
-                "Party": r.get("party",""),
-                "Total": int(r.get("votes",0)),
-                "Percent": r.get("percentage",0)
+                "Candidate": r.get("LeadingCandidate") or r.get("candidate"),
+                "Party": r.get("LeadingParty") or r.get("party"),
+                "Total": r.get("Margin") or r.get("votes"),
+                "Status": r.get("Status") or r.get("status")
             })
 
     return jsonify({"data": filtered})
