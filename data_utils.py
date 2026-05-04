@@ -1,21 +1,12 @@
 import pandas as pd
 
-
 def process_data(df):
-    if df is None or df.empty:
-        return pd.DataFrame(), pd.DataFrame(), pd.Series()
+    df["Votes"] = pd.to_numeric(df["Votes"], errors="coerce").fillna(0)
 
-    df = df.dropna(subset=["Constituency", "Party"])
+    # Winner per constituency
+    winners = df.loc[df.groupby("Constituency")["Votes"].idxmax()]
 
-    df["Votes"] = pd.to_numeric(
-        df["Votes"], errors="coerce"
-    ).fillna(0)
-
-    winners = (
-        df.sort_values("Votes", ascending=False)
-        .drop_duplicates("Constituency")
-    )
-
+    # Party seat count
     seat_count = winners["Party"].value_counts()
 
     return df, winners, seat_count
