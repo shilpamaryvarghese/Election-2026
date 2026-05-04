@@ -4,6 +4,7 @@
 <title>Constituency Result</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 
 <style>
 body { font-family: Arial; padding:20px; }
@@ -13,6 +14,17 @@ select {
     margin-bottom:20px;
 }
 
+/* WINNER BANNER */
+.winner-box {
+    background: #28a745;
+    color: white;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    display: none;
+}
+
+/* TABLE */
 table {
     width:100%;
     border-collapse: collapse;
@@ -28,6 +40,11 @@ td,th {
     border:1px solid #ddd;
 }
 
+tr.winner {
+    background:#d4edda;
+    font-weight:bold;
+}
+
 </style>
 
 </head>
@@ -38,7 +55,9 @@ td,th {
 
 <select id="dropdown"></select>
 
-<canvas id="chart" height="100"></canvas>
+<div class="winner-box" id="winnerBox"></div>
+
+<canvas id="chart" height="120"></canvas>
 
 <table>
 <thead>
@@ -53,6 +72,17 @@ td,th {
 </table>
 
 <script>
+
+// 🎨 PARTY COLORS
+function getPartyColor(party){
+    party = party.toUpperCase();
+
+    if(party.includes("INC")) return "#1e90ff";
+    if(party.includes("CPM") || party.includes("CPI")) return "#ff4b2b";
+    if(party.includes("BJP")) return "#ff9800";
+
+    return "#888"; // others
+}
 
 // LOAD DROPDOWN
 async function loadDropdown(){
@@ -73,7 +103,7 @@ async function loadDropdown(){
 
 let chart;
 
-// LOAD CONSTITUENCY DATA
+// LOAD DATA
 async function loadData(name){
 
     let res = await fetch("/api/constituency/" + name);
@@ -84,14 +114,40 @@ async function loadData(name){
 
     let labels = [];
     let votes = [];
+    let colors = [];
+
+    let winner = null;
 
     json.data.forEach(r=>{
 
+        let total = parseInt(r.Total);
+
         labels.push(r.Candidate);
-        votes.push(r.Total);
+        votes.push(total);
+        colors.push(getPartyColor(r.Party));
+
+        if(!winner || total > winner.Total){
+            winner = {...r, Total: total};
+        }
+    });
+
+    // 🏆 WINNER BANNER
+    let box = document.getElementById("winnerBox");
+
+    if(winner){
+        box.style.display = "block";
+        box.innerHTML = `
+        🏆 Winner: <b>${winner.Candidate}</b> (${winner.Party})  
+        <br>Votes: ${winner.Total}
+        `;
+    }
+
+    // TABLE
+    json.data.forEach(r=>{
+        let cls = (r.Candidate === winner.Candidate) ? "winner" : "";
 
         tbody.innerHTML += `
-        <tr>
+        <tr class="${cls}">
             <td>${r.Candidate}</td>
             <td>${r.Party}</td>
             <td>${r.Total}</td>
@@ -99,15 +155,36 @@ async function loadData(name){
         </tr>`;
     });
 
-    // DRAW CHART
+    // CHART
     if(chart) chart.destroy();
 
     chart = new Chart(document.getElementById("chart"), {
         type:'bar',
         data:{
             labels:labels,
-            datasets:[{ data:votes }]
-        }
+            datasets:[{
+                data:votes,
+                backgroundColor: colors
+            }]
+        },
+        options:{
+            plugins:{
+                legend:{ display:false },
+
+                // 📊 % LABELS
+                datalabels:{
+                    color:'black',
+                    anchor:'end',
+                    align:'top',
+                    formatter: (val, ctx)=>{
+                        let totalVotes = votes.reduce((a,b)=>a+b,0);
+                        let percent = ((val/totalVotes)*100).toFixed(1);
+                        return percent + "%";
+                    }
+                }
+            }
+        },
+        plugins:[ChartDataLabels]
     });
 }
 
