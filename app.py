@@ -7,7 +7,7 @@ app = Flask(__name__)
 # =========================
 # ECI URL
 # =========================
-ECI_URL = "https://results.eci.gov.in/ResultAcGenMay2026/election-json-S11-live.json"
+ECI_URL = "https://www.ndtv.com/elections/kerala/results-2026"
 
 # =========================
 # FETCH ECI DATA
@@ -67,7 +67,7 @@ def fallback_data():
 # =========================
 # PAGE ROUTES
 # =========================
-@app.route("/api/summary")
+@app.route("/")
 def home():
     return render_template("index.html")
 
