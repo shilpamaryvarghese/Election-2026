@@ -1,40 +1,73 @@
-import pandas as pd
 import requests
-from bs4 import BeautifulSoup
-import random
+import pandas as pd
 
 URL = "https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
 
+
+def fallback_data():
+    return pd.DataFrame([
+        {
+            "Constituency": "Manjeshwar",
+            "Candidate": "Candidate A",
+            "Party": "LDF",
+            "Votes": 12000,
+            "Status": "Leading"
+        },
+        {
+            "Constituency": "Kasaragod",
+            "Candidate": "Candidate B",
+            "Party": "UDF",
+            "Votes": 10800,
+            "Status": "Leading"
+        },
+        {
+            "Constituency": "Udma",
+            "Candidate": "Candidate C",
+            "Party": "NDA",
+            "Votes": 9200,
+            "Status": "Leading"
+        }
+    ])
+
+
 def fetch_data():
     try:
-        page = requests.get(URL, timeout=58)
-        soup = BeautifulSoup(page.text, "html.parser")
+        headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
 
-        rows = soup.find_all("tr")
+        res = requests.get(URL, headers=headers, timeout=8)
 
-        data = []
-        for row in rows:
-            cols = [c.text.strip() for c in row.find_all("td")]
-            if len(cols) >= 4:
-                data.append(cols[:4])
+        if res.status_code != 200:
+            return fallback_data()
 
-        if len(data) == 0:
-            raise Exception("No data")
+        data = res.json()
 
-        df = pd.DataFrame(data, columns=[
-            "Constituency", "Candidate", "Party", "Votes"
-        ])
+        if not isinstance(data, list):
+            return fallback_data()
+
+        rows = []
+
+        for item in data:
+            rows.append({
+                "Constituency": item.get("constituency_name", ""),
+                "Candidate": item.get("candidate_name", ""),
+                "Party": item.get("party_name", ""),
+                "Votes": item.get("votes", 0),
+                "Status": item.get("status", "")
+            })
+
+        df = pd.DataFrame(rows)
+
+        if df.empty:
+            return fallback_data()
+
+        df = df[df["Constituency"] != ""]
+
+        if df.empty:
+            return fallback_data()
+
         return df
 
-    except:
-        # fallback
-        constituencies = [f"Seat {i}" for i in range(1, 141)]
-        parties = ["LDF", "UDF", "NDA", "Others"]
-
-        df = pd.DataFrame({
-            "Constituency": constituencies,
-            "Candidate": ["Candidate"] * 140,
-            "Party": [random.choice(parties) for _ in range(140)],
-            "Votes": [random.randint(1000, 50000) for _ in range(140)]
-        })
-        return df
+    except Exception:
+        return fallback_data()
