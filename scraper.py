@@ -1,7 +1,8 @@
 import requests
 import pandas as pd
 
-URL = "https://data.ndtv.com/elections/2026/WinnerCandidates_VS_KER.json"
+URL = "
+https://edata.ndtv.com/feeds/assembly/keralam/2026/json/WinnerCandidates_VS_KER.json"
 
 def fetch_data():
     try:
