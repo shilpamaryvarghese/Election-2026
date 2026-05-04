@@ -7,7 +7,7 @@ app = Flask(__name__)
 # =========================
 # ECI URL
 # =========================
-ECI_URL = "https://results.eci.gov.in/ResultAcGenMay2026/statewiseS111.htm"
+ECI_URL = "https://results.eci.gov.in/ResultAcGenMay2026/election-json-S11-live.json"
 
 # =========================
 # FETCH ECI DATA
