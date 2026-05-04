@@ -1,162 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Election Dashboard</title>
-
-<link rel="stylesheet" href="/static/style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-
-/* TABLE STYLE */
-.table-container {
-    padding: 20px;
-    overflow-x: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-th, td {
-    padding: 10px;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-th {
-    background: #0b3d91;
-    color: white;
-}
-
-tr:nth-child(even) {
-    background: #f2f2f2;
-}
-
-body.dark table {
-    background: #1e1e1e;
-    color: white;
-}
-
-body.dark th {
-    background: #333;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="header">Kerala Election Dashboard</div>
-
-<div class="container">
-
-    <!-- LEFT -->
-    <div class="left">
-        <canvas id="barChart"></canvas>
-
-        <h2 style="padding:20px;">Full Results</h2>
-
-        <div class="table-container">
-            <table id="resultTable">
-                <thead>
-                    <tr>
-                        <th>Constituency</th>
-                        <th>Candidate</th>
-                        <th>Party</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                    <tr><td colspan="4">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-
-    <!-- RIGHT -->
-    <div class="right">
-
-        <input id="search" placeholder="Search..." />
-
-    </div>
-
-</div>
-
-<script>
-
-// 📊 CHART
-let chart;
-function loadChart(data){
-    let labels = data.map(d=>d.Alliance);
-    let seats = data.map(d=>d.Seats);
-
-    if(chart) chart.destroy();
-
-    chart = new Chart(document.getElementById("barChart"), {
-        type:'bar',
-        data:{
-            labels:labels,
-            datasets:[{ data:seats }]
-        }
-    });
-}
-
-
-// 📊 SUMMARY
-async function loadSummary(){
-    let res = await fetch("/api/summary");
-    let json = await res.json();
-    loadChart(json.data);
-}
-
-
-// 📋 LOAD TABLE DATA
 async function loadTable(){
 
     let tbody = document.getElementById("tableBody");
 
-    tbody.innerHTML = `<tr><td colspan="4">Loading...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9">Loading...</td></tr>`;
 
-    let res = await fetch("/api/constituency/all");
-    let json = await res.json();
+    try {
 
-    tbody.innerHTML = "";
+        let res = await fetch("/api/constituency/all");
+        let json = await res.json();
 
-    json.data.forEach(r => {
+        tbody.innerHTML = "";
 
-        tbody.innerHTML += `
-        <tr>
-            <td>${r.constituency || "-"}</td>
-            <td>${r.Candidate_Name}</td>
-            <td>${r.Party}</td>
-            <td>${r.status}</td>
-        </tr>`;
-    });
+        if(!json.data || json.data.length === 0){
+            tbody.innerHTML = `<tr><td colspan="9">No data found</td></tr>`;
+            return;
+        }
+
+        json.data.forEach(r => {
+
+            tbody.innerHTML += `
+            <tr>
+                <td>${r.constituency}</td>
+                <td>${r.const_no}</td>
+                <td>${r.leading_candidate}</td>
+                <td>${r.leading_party}</td>
+                <td>${r.trailing_candidate}</td>
+                <td>${r.trailing_party}</td>
+                <td>${r.margin}</td>
+                <td>${r.round}</td>
+                <td>${r.status}</td>
+            </tr>`;
+        });
+
+    } catch (err){
+        tbody.innerHTML = `<tr><td colspan="9">Error loading data</td></tr>`;
+        console.error(err);
+    }
 }
-
-
-// 🔍 SEARCH FILTER
-document.getElementById("search").addEventListener("keyup", function(){
-
-    let val = this.value.toLowerCase();
-    let rows = document.querySelectorAll("#tableBody tr");
-
-    rows.forEach(row=>{
-        row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
-    });
-});
-
-
-// 🚀 INIT
-loadSummary();
-loadTable();
-
-</script>
-
-</body>
-</html>
