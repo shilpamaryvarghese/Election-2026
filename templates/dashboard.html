@@ -1,161 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kerala Election Results</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Kerala Election Result</title>
+
+<style>
+body { font-family: Arial; text-align:center; }
+
+.card {
+    display:inline-block;
+    padding:20px;
+    margin:10px;
+    border-radius:10px;
+    color:white;
+    width:120px;
+}
+
+.ldf { background:red; }
+.udf { background:blue; }
+.nda { background:orange; }
+.others { background:gray; }
+
+#spinner {
+    display:inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {transform: rotate(0deg);}
+    to {transform: rotate(360deg);}
+}
+
+svg path {
+    fill:#ccc;
+    stroke:black;
+    cursor:pointer;
+}
+svg path:hover {
+    fill:yellow;
+}
+</style>
 </head>
+
 <body>
 
-<h1 style="text-align:center;">Kerala Election Dashboard</h1>
+<h1>Kerala Election 2026</h1>
 
-<!-- STATUS -->
-<p id="status" style="text-align:center; font-weight:bold;">Loading...</p>
+<div id="status">Loading <span id="spinner">🔄</span></div>
 
-<!-- CARDS -->
-<div id="cards" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
+<!-- ALLIANCE -->
+<div id="alliances"></div>
 
-<!-- TABLE -->
-<table border="1" style="margin:auto; margin-top:20px; width:60%; text-align:center;">
-<thead>
-<tr>
-<th>Party</th>
-<th>Won</th>
-<th>Leading</th>
-<th>Total</th>
-</tr>
-</thead>
-<tbody id="tableData"></tbody>
-</table>
+<h2>Click District</h2>
 
-<!-- DROPDOWN -->
-<div style="text-align:center; margin-top:20px;">
-    <select id="constituencySelect" onchange="goToConstituency()">
-        <option value="">Select Constituency</option>
-    </select>
-</div>
+<!-- SIMPLE MAP -->
+<svg viewBox="0 0 200 400" width="300">
 
-<!-- CHART -->
-<div style="width:400px; margin:auto;">
-    <canvas id="chart"></canvas>
-</div>
+<path id="Kasargod" d="M10,10 L100,10 L100,50 L10,50 Z"/>
+<path id="Kannur" d="M10,60 L100,60 L100,100 L10,100 Z"/>
+<path id="Kozhikode" d="M10,110 L100,110 L100,150 L10,150 Z"/>
+<path id="Malappuram" d="M10,160 L100,160 L100,200 L10,200 Z"/>
+
+</svg>
 
 <script>
 
-let chart;
-
-// ---------------- LOAD PARTY DATA ----------------
 async function load(){
-    try{
-        let res = await fetch("/api/party-summary");
-        let json = await res.json();
+    document.getElementById("status").innerHTML = "Updating 🔄";
 
-        console.log("API DATA:", json);  // 🔥 DEBUG
+    let res = await fetch("/api/alliance");
+    let json = await res.json();
 
-        let cards = document.getElementById("cards");
-        let table = document.getElementById("tableData");
-        let status = document.getElementById("status");
+    let div = document.getElementById("alliances");
+    div.innerHTML = "";
 
-        cards.innerHTML = "";
-        table.innerHTML = "";
+    json.data.forEach(a=>{
+        let cls = a.Alliance.toLowerCase();
 
-        if(!json.data || json.data.length === 0){
-            status.innerText = "No data available";
-            return;
-        }
-
-        status.innerText = json.dummy ? "Showing Dummy Data" : "Live Data";
-
-        let labels = [];
-        let values = [];
-
-        json.data.forEach(p=>{
-            // CARDS
-            cards.innerHTML += `
-            <div style="
-                background:#333;
-                color:white;
-                padding:15px;
-                margin:10px;
-                border-radius:8px;
-                width:120px;
-                text-align:center;
-            ">
-                <b>${p.Party}</b>
-                <h2>${p.Total}</h2>
-            </div>
-            `;
-
-            // TABLE
-            table.innerHTML += `
-            <tr>
-                <td>${p.Party}</td>
-                <td>${p.Won}</td>
-                <td>${p.Leading}</td>
-                <td>${p.Total}</td>
-            </tr>
-            `;
-
-            labels.push(p.Party);
-            values.push(p.Total);
-        });
-
-        drawChart(labels, values);
-
-    }catch(err){
-        console.error(err);
-        document.getElementById("status").innerText = "Error loading data";
-    }
-}
-
-
-// ---------------- LOAD CONSTITUENCIES ----------------
-async function loadConstituencies(){
-    try{
-        let res = await fetch("/api/constituencies");
-        let json = await res.json();
-
-        let select = document.getElementById("constituencySelect");
-
-        json.data.forEach(c=>{
-            select.innerHTML += `<option value="${c}">${c}</option>`;
-        });
-
-    }catch(err){
-        console.error("Dropdown error:", err);
-    }
-}
-
-
-// ---------------- NAVIGATION ----------------
-function goToConstituency(){
-    let name = document.getElementById("constituencySelect").value;
-
-    if(name){
-        window.location = "/constituency/" + encodeURIComponent(name);
-    }
-}
-
-
-// ---------------- CHART ----------------
-function drawChart(labels, values){
-    if(chart) chart.destroy();
-
-    chart = new Chart(document.getElementById("chart"), {
-        type: "pie",
-        data: {
-            labels: labels,
-            datasets: [{
-                data: values
-            }]
-        }
+        div.innerHTML += `
+        <div class="card ${cls}">
+            <h3>${a.Alliance}</h3>
+            <h1>${a.Total}</h1>
+        </div>
+        `;
     });
+
+    document.getElementById("status").innerHTML = "Live Updated ✅";
 }
 
+// MAP CLICK
+document.querySelectorAll("svg path").forEach(p=>{
+    p.onclick = ()=>{
+        window.location = "/constituency/" + p.id;
+    };
+});
 
-// ---------------- AUTO LOAD ----------------
 load();
-loadConstituencies();
-setInterval(load, 15000);
+setInterval(load, 10000);
 
 </script>
 
