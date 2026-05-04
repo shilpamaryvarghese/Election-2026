@@ -1,73 +1,102 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Constituency Results</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+<title>Kerala Election</title>
 
-<div class="header">
-    <h1>Constituency Results</h1>
-</div>
+<style>
+body { font-family: Arial; text-align:center; }
 
-<div class="navbar">
-    <a href="/">Home</a>
-    <a href="/candidates">Candidates</a>
-    <a href="/partywise">Party Wise</a>
-</div>
-
-<div class="container">
-
-<h2>{{name}}</h2>
-
-<!-- ✅ STATUS MESSAGE -->
-<p id="status" style="font-weight: bold; color: red;"></p>
-
-<table>
-<thead>
-<tr>
-<th>Candidate</th>
-<th>Party</th>
-<th>Votes</th>
-<th>Status</th>
-</tr>
-</thead>
-
-<tbody id="data"></tbody>
-</table>
-
-</div>
-
-<script>
-async function load(){
-    let name = "{{name}}";
-
-    let res = await fetch(`/api/constituency/${name}`);
-    let json = await res.json();
-
-    // ✅ SHOW LIVE OR DUMMY STATUS
-    document.getElementById("status").innerText =
-        json.dummy ? "⚠️ Showing Dummy Data" : "✅ Live Data";
-
-    let tbody = document.getElementById("data");
-    tbody.innerHTML = "";
-
-    json.data.forEach(r=>{
-        tbody.innerHTML += `
-        <tr>
-        <td>${r.Candidate_Name}</td>
-        <td>${r.Party}</td>
-        <td>${r.Votes}</td>
-        <td>${r.Status}</td>
-        </tr>`;
-    });
+.card {
+    display:inline-block;
+    padding:20px;
+    margin:10px;
+    border-radius:10px;
+    color:white;
+    width:120px;
 }
 
-// 🔄 AUTO REFRESH EVERY 10 SEC
+.ldf { background:red; }
+.udf { background:blue; }
+.nda { background:orange; }
+.others { background:gray; }
+
+#spinner {
+    display:inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {transform: rotate(0deg);}
+    to {transform: rotate(360deg);}
+}
+
+svg path {
+    fill:#ccc;
+    stroke:black;
+    cursor:pointer;
+}
+svg path:hover {
+    fill:yellow;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Kerala Election 2026</h1>
+
+<div id="status">Loading <span id="spinner">🔄</span></div>
+
+<!-- ALLIANCE -->
+<div id="alliances"></div>
+
+<h2>Click District</h2>
+
+<!-- SIMPLE MAP -->
+<svg viewBox="0 0 200 400" width="300">
+
+<path id="Kasargod" d="M10,10 L100,10 L100,50 L10,50 Z"/>
+<path id="Kannur" d="M10,60 L100,60 L100,100 L10,100 Z"/>
+<path id="Kozhikode" d="M10,110 L100,110 L100,150 L10,150 Z"/>
+<path id="Malappuram" d="M10,160 L100,160 L100,200 L10,200 Z"/>
+
+</svg>
+
+<script>
+
+async function load(){
+    document.getElementById("status").innerHTML = "Updating 🔄";
+
+    let res = await fetch("/api/alliance");
+    let json = await res.json();
+
+    let div = document.getElementById("alliances");
+    div.innerHTML = "";
+
+    json.data.forEach(a=>{
+        let cls = a.Alliance.toLowerCase();
+
+        div.innerHTML += `
+        <div class="card ${cls}">
+            <h3>${a.Alliance}</h3>
+            <h1>${a.Total}</h1>
+        </div>
+        `;
+    });
+
+    document.getElementById("status").innerHTML = "Live Updated ✅";
+}
+
+// MAP CLICK
+document.querySelectorAll("svg path").forEach(p=>{
+    p.onclick = ()=>{
+        window.location = "/constituency/" + p.id;
+    };
+});
+
+load();
 setInterval(load, 10000);
 
-// INITIAL LOAD
-load();
 </script>
 
 </body>
