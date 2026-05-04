@@ -1,62 +1,202 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Party Wise</title>
+<title>Party Wise Results</title>
+
+<link rel="stylesheet" href="/static/style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+.container {
+    padding: 20px;
+}
+
+/* DROPDOWN */
+.select-box {
+    max-width: 300px;
+    margin-bottom: 20px;
+}
+
+/* CARDS */
+.party-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+    gap: 15px;
+}
+
+.party-card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+.party-card.highlight {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+.party-card.dim {
+    opacity: 0.3;
+    filter: blur(1px);
+}
+
+/* CHARTS */
+.chart-box {
+    background: white;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h2>Party Wise Results</h2>
+<div class="navbar">
+    <h2>Kerala Election 2026</h2>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
+    </div>
+</div>
 
-<canvas id="pie"></canvas>
+<div class="container">
 
-<table>
-<thead>
-<tr>
-<th>Party</th>
-<th>Seats</th>
-<th>Votes</th>
-</tr>
-</thead>
-<tbody id="body"></tbody>
-</table>
+<h2 class="page-title">Party Wise Analysis</h2>
+
+<select id="partySelect" class="select-box" onchange="updateView()">
+    <option value="">Select Party</option>
+</select>
+
+<div id="cards" class="party-cards"></div>
+
+<div class="chart-box">
+    <canvas id="barChart"></canvas>
+</div>
+
+<div class="chart-box">
+    <canvas id="pieChart"></canvas>
+</div>
+
+</div>
 
 <script>
 
-async function load(){
+let data = [];
+let barChart, pieChart;
 
+// PARTY COLORS
+function getColor(party){
+    if(party.includes("INC")) return "#1e90ff";
+    if(party.includes("CPM") || party.includes("CPI")) return "#ff4b2b";
+    if(party.includes("BJP")) return "#f7971e";
+    return "#888";
+}
+
+// LOAD DATA
+async function loadData(){
     let res = await fetch("/api/partywise");
     let json = await res.json();
+    data = json.data;
 
-    let labels = [];
-    let seats = [];
+    populateDropdown();
+    renderCards();
+    drawCharts();
+}
 
-    let tbody = document.getElementById("body");
-    tbody.innerHTML = "";
+loadData();
 
-    json.data.forEach(p=>{
-        labels.push(p.party);
-        seats.push(p.seats);
+// DROPDOWN
+function populateDropdown(){
+    let select = document.getElementById("partySelect");
 
-        tbody.innerHTML += `
-        <tr>
-            <td>${p.party}</td>
-            <td>${p.seats}</td>
-            <td>${p.votes}</td>
-        </tr>`;
+    data.forEach(p=>{
+        let opt = `<option value="${p.party}">${p.party}</option>`;
+        select.innerHTML += opt;
+    });
+}
+
+// CARDS
+function renderCards(selected=""){
+
+    let container = document.getElementById("cards");
+    container.innerHTML = "";
+
+    data.forEach(p=>{
+
+        let cls = "";
+        if(selected){
+            cls = (p.party === selected) ? "highlight" : "dim";
+        }
+
+        let color = getColor(p.party);
+
+        container.innerHTML += `
+        <div class="party-card ${cls}" style="border-top:5px solid ${color}">
+            <h3>${p.party}</h3>
+            <p>Seats: ${p.seats}</p>
+            <p>Votes: ${p.votes}</p>
+        </div>
+        `;
+    });
+}
+
+// CHARTS
+function drawCharts(selected=""){
+
+    let labels = data.map(p=>p.party);
+    let votes = data.map(p=>p.votes);
+
+    let colors = data.map(p=>{
+        if(selected && p.party !== selected) return "rgba(200,200,200,0.3)";
+        return getColor(p.party);
     });
 
-    new Chart(document.getElementById("pie"), {
-        type:'pie',
-        data:{
-            labels:labels,
-            datasets:[{ data:seats }]
+    // BAR
+    if(barChart) barChart.destroy();
+    barChart = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Votes",
+                data: votes,
+                backgroundColor: colors
+            }]
+        }
+    });
+
+    // PIE
+    if(pieChart) pieChart.destroy();
+    pieChart = new Chart(document.getElementById("pieChart"), {
+        type: "pie",
+        data: {
+            labels: labels,
+            datasets: [{
+                data: votes,
+                backgroundColor: colors
+            }]
         }
     });
 }
 
-load();
+// UPDATE VIEW
+function updateView(){
+    let selected = document.getElementById("partySelect").value;
+
+    renderCards(selected);
+    drawCharts(selected);
+}
 
 </script>
 
