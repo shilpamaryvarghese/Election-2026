@@ -8,33 +8,24 @@ CSV_FILE = "kerala_2026_candidates.csv"
 API_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 
 
-# ---------------- LOAD CSV ----------------
 def load_data():
     df = pd.read_csv(CSV_FILE)
-
-    df["Candidate_Name"] = df["Candidate_Name"].astype(str)
-    df["Party"] = df["Party"].astype(str)
     df["Constituency_Name"] = df["Constituency_Name"].astype(str)
-
     return df
 
 
-# ---------------- FETCH LIVE DATA ----------------
 def get_live_data():
     try:
-        res = requests.get(API_URL, timeout=10)
-        return res.json()
+        return requests.get(API_URL, timeout=10).json()
     except:
         return []
 
 
-# ---------------- HOME ----------------
 @app.route("/")
 def home():
     return render_template("dashboard.html")
 
 
-# ---------------- API: CONSTITUENCIES ----------------
 @app.route("/api/constituencies")
 def constituencies():
     df = load_data()
@@ -43,7 +34,6 @@ def constituencies():
     })
 
 
-# ---------------- API: CONSTITUENCY DATA ----------------
 @app.route("/api/constituency/<name>")
 def constituency(name):
     df = load_data()
@@ -54,17 +44,11 @@ def constituency(name):
     if live:
         live_df = pd.DataFrame(live)
 
-        live_df["candidate"] = live_df["candidate"].str.lower()
-        live_df["party"] = live_df["party"].str.lower()
-
-        df["Candidate_Name"] = df["Candidate_Name"].str.lower()
-        df["Party"] = df["Party"].str.lower()
-
         merged = pd.merge(
             df,
             live_df,
-            left_on=["Candidate_Name", "Party"],
-            right_on=["candidate", "party"],
+            left_on="Candidate_Name",
+            right_on="candidate",
             how="left"
         )
 
@@ -76,7 +60,6 @@ def constituency(name):
     else:
         df["votes"] = 0
         df["status"] = "Dummy"
-
         return jsonify({"data": df.to_dict(orient="records")})
 
 
