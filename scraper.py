@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import random
 
-URL = "https://results.eci.gov.in/"
+URL = "https://www.ndtv.com/elections/kerala/results-2026"
 
 def fetch_data():
     try:
