@@ -5,8 +5,9 @@ import time
 
 app = Flask(__name__)
 
-CSV_FILE = "kerala_2026_candidates.csv"
-API_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
+# ---------------- API LINKS ----------------
+RESULT_API = "https://api.opendatakerala.org/api/kla2026/results/all.json"
+HIT_API = "https://api.opendatakerala.org/api/kla2026/hitcounter"
 
 # ---------------- CACHE ----------------
 CACHE = None
@@ -14,36 +15,20 @@ CACHE_TIME = 0
 CACHE_EXPIRY = 30  # seconds
 
 
-# ---------------- LOAD CSV ----------------
-def load_data():
-    df = pd.read_csv(CSV_FILE)
-
-    df["Candidate_Name"] = df["Candidate_Name"].astype(str).str.strip().str.lower()
-    df["Party"] = df["Party"].astype(str).str.strip().str.lower()
-    df["Constituency_Name"] = df["Constituency_Name"].astype(str).str.strip()
-
-    return df
-
-
-# ---------------- FETCH API DATA ----------------
-def fetch_api_data():
+# ---------------- FETCH RESULT DATA ----------------
+def fetch_data():
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-
-        res = requests.get(API_URL, headers=headers, timeout=10)
-
+        res = requests.get(RESULT_API, timeout=10)
         if res.status_code != 200:
             return None
-
         return res.json()
-
     except Exception as e:
-        print("API error:", e)
+        print("API Error:", e)
         return None
 
 
 # ---------------- CACHE WRAPPER ----------------
-def get_cached_data():
+def get_data():
     global CACHE, CACHE_TIME
 
     now = time.time()
@@ -51,7 +36,7 @@ def get_cached_data():
     if CACHE and (now - CACHE_TIME < CACHE_EXPIRY):
         return CACHE
 
-    data = fetch_api_data()
+    data = fetch_data()
 
     if data:
         CACHE = data
@@ -68,21 +53,21 @@ def home():
 
 
 @app.route("/constituency/<name>")
-def constituency_page(name):
+def constituency(name):
     return render_template("constituency.html", name=name)
 
 
 # ---------------- API: PARTY SUMMARY ----------------
 @app.route("/api/party-summary")
 def party_summary():
-    data = get_cached_data()
+    data = get_data()
 
     if not data:
         return jsonify({"dummy": True, "data": []})
 
     df = pd.DataFrame(data)
 
-    # ⚠️ Adjust column names if needed
+    # ⚠️ Adjust if API fields differ
     df["party"] = df["party"].astype(str).str.upper()
     df["status"] = df["status"].astype(str).str.lower()
 
@@ -102,20 +87,17 @@ def party_summary():
 # ---------------- API: CONSTITUENCY ----------------
 @app.route("/api/constituency/<name>")
 def api_constituency(name):
-    data = get_cached_data()
+    data = get_data()
 
     if not data:
         return jsonify({"dummy": True, "data": []})
 
     df = pd.DataFrame(data)
 
-    # ⚠️ Adjust based on API fields
+    # ⚠️ Adjust field name if needed
     df["constituency"] = df["constituency"].astype(str).str.strip()
 
     result = df[df["constituency"].str.lower() == name.lower()]
-
-    if result.empty:
-        return jsonify({"dummy": True, "data": []})
 
     return jsonify({
         "dummy": False,
@@ -123,10 +105,10 @@ def api_constituency(name):
     })
 
 
-# ---------------- API: CONSTITUENCIES ----------------
+# ---------------- API: CONSTITUENCIES LIST ----------------
 @app.route("/api/constituencies")
 def get_constituencies():
-    data = get_cached_data()
+    data = get_data()
 
     if not data:
         return jsonify({"data": []})
@@ -136,6 +118,22 @@ def get_constituencies():
     return jsonify({
         "data": sorted(df["constituency"].dropna().unique())
     })
+
+
+# ---------------- API: HIT COUNTER ----------------
+@app.route("/api/hitcount")
+def hitcount():
+    try:
+        res = requests.get(HIT_API, timeout=5)
+
+        if res.status_code != 200:
+            return jsonify({"count": 0})
+
+        return jsonify(res.json())
+
+    except Exception as e:
+        print("Hit API Error:", e)
+        return jsonify({"count": 0})
 
 
 # ---------------- RUN ----------------
