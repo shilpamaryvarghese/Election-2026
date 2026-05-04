@@ -1,6 +1,4 @@
 KERALA_MAP = {
-
-    # Thiruvananthapuram (14)
     "Varkala": "Thiruvananthapuram",
     "Attingal": "Thiruvananthapuram",
     "Chirayinkeezhu": "Thiruvananthapuram",
@@ -15,8 +13,6 @@ KERALA_MAP = {
     "Kattakkada": "Thiruvananthapuram",
     "Kovalam": "Thiruvananthapuram",
     "Neyyattinkara": "Thiruvananthapuram",
-
-    # Kollam (11)
     "Kollam": "Kollam",
     "Eravipuram": "Kollam",
     "Chathannoor": "Kollam",
@@ -28,26 +24,19 @@ KERALA_MAP = {
     "Kunnathur": "Kollam",
     "Karunagappally": "Kollam",
     "Chavara": "Kollam",
-
-    # Pathanamthitta (5)
     "Adoor": "Pathanamthitta",
     "Konni": "Pathanamthitta",
     "Aranmula": "Pathanamthitta",
     "Ranni": "Pathanamthitta",
     "Thiruvalla": "Pathanamthitta",
-
-    # Alappuzha (9)
     "Chengannur": "Alappuzha",
     "Mavelikkara": "Alappuzha",
     "Kayamkulam": "Alappuzha",
     "Haripad": "Alappuzha",
-    "Karunagappally": "Alappuzha",
     "Ambalappuzha": "Alappuzha",
     "Alappuzha": "Alappuzha",
     "Cherthala": "Alappuzha",
     "Kuttanad": "Alappuzha",
-
-    # Kottayam (9)
     "Pala": "Kottayam",
     "Kaduthuruthy": "Kottayam",
     "Vaikom": "Kottayam",
@@ -57,15 +46,11 @@ KERALA_MAP = {
     "Changanassery": "Kottayam",
     "Kanjirappally": "Kottayam",
     "Poonjar": "Kottayam",
-
-    # Idukki (5)
     "Idukki": "Idukki",
     "Peerumade": "Idukki",
     "Devikulam": "Idukki",
     "Udumbanchola": "Idukki",
     "Thodupuzha": "Idukki",
-
-    # Ernakulam (14)
     "Perumbavoor": "Ernakulam",
     "Angamaly": "Ernakulam",
     "Aluva": "Ernakulam",
@@ -80,8 +65,6 @@ KERALA_MAP = {
     "Muvattupuzha": "Ernakulam",
     "Kunnathunad": "Ernakulam",
     "Piravom": "Ernakulam",
-
-    # Thrissur (13)
     "Kodungallur": "Thrissur",
     "Irinjalakuda": "Thrissur",
     "Chalakudy": "Thrissur",
@@ -95,8 +78,6 @@ KERALA_MAP = {
     "Wadakkanchery": "Thrissur",
     "Chelakkara": "Thrissur",
     "Puthukkad": "Thrissur",
-
-    # Palakkad (12)
     "Alathur": "Palakkad",
     "Chittur": "Palakkad",
     "Nenmara": "Palakkad",
@@ -109,8 +90,6 @@ KERALA_MAP = {
     "Thrithala": "Palakkad",
     "Kongad": "Palakkad",
     "Mannarkkad": "Palakkad",
-
-    # Malappuram (16)
     "Nilambur": "Malappuram",
     "Wandoor": "Malappuram",
     "Eranad": "Malappuram",
@@ -127,8 +106,6 @@ KERALA_MAP = {
     "Kottakkal": "Malappuram",
     "Thavanur": "Malappuram",
     "Ponnani": "Malappuram",
-
-    # Kozhikode (13)
     "Kozhikode North": "Kozhikode",
     "Kozhikode South": "Kozhikode",
     "Beypore": "Kozhikode",
@@ -141,14 +118,9 @@ KERALA_MAP = {
     "Quilandy": "Kozhikode",
     "Koduvally": "Kozhikode",
     "Thiruvambady": "Kozhikode",
-    "Kunnamangalam": "Kozhikode",
-
-    # Wayanad (3)
     "Mananthavady": "Wayanad",
     "Sulthan Bathery": "Wayanad",
     "Kalpetta": "Wayanad",
-
-    # Kannur (11)
     "Thalassery": "Kannur",
     "Dharmadam": "Kannur",
     "Kannur": "Kannur",
@@ -160,8 +132,6 @@ KERALA_MAP = {
     "Peravoor": "Kannur",
     "Payyannur": "Kannur",
     "Kalliasseri": "Kannur",
-
-    # Kasaragod (5)
     "Kasaragod": "Kasaragod",
     "Manjeshwar": "Kasaragod",
     "Udma": "Kasaragod",
