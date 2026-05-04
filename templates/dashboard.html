@@ -4,54 +4,47 @@
 <title>Election Dashboard</title>
 
 <link rel="stylesheet" href="/static/style.css">
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-body { margin:0; font-family:Arial; }
-
-.container { display:flex; height:100vh; }
-
-#map { width:60%; }
-
-.sidebar {
-    width:40%;
-    padding:20px;
-    background:#f4f6fb;
-    overflow:auto;
-}
-
-input, select {
-    width:100%;
-    padding:10px;
-    margin:10px 0;
-}
-
-.card {
-    background:white;
-    padding:10px;
-    margin:10px 0;
-    border-radius:8px;
-}
-</style>
 </head>
 
 <body>
 
+<!-- DARK MODE TOGGLE -->
+<div class="toggle" onclick="toggleDark()">🌙</div>
+
+<!-- HEADER -->
+<div class="header">
+    Kerala Election Results 2026
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+    <div class="card UDF"><h3>UDF</h3><h1 id="udf">0</h1></div>
+    <div class="card LDF"><h3>LDF</h3><h1 id="ldf">0</h1></div>
+    <div class="card NDA"><h3>NDA</h3><h1 id="nda">0</h1></div>
+    <div class="card OTH"><h3>Others</h3><h1 id="oth">0</h1></div>
+</div>
+
 <div class="container">
 
-    <div id="map"></div>
+    <!-- LEFT SIDE -->
+    <div class="left">
+        <canvas id="barChart"></canvas>
+    </div>
 
-    <div class="sidebar">
+    <!-- RIGHT SIDE -->
+    <div class="right">
 
-        <h2>Search</h2>
+        <input id="search" placeholder="Search constituency...">
 
-        <input id="searchBox" placeholder="Search constituency...">
-
-        <select id="constituencySelect" onchange="loadConstituencyData()">
+        <select id="select" onchange="loadData()">
             <option value="">Select Constituency</option>
         </select>
 
-        <div id="results"></div>
+        <div id="results">
+            <div class="loader"></div>
+        </div>
 
     </div>
 
@@ -59,173 +52,138 @@ input, select {
 
 <script>
 
-// INIT MAP
-let map = L.map('map').setView([10.2, 76.3], 7);
+// 🔥 SMOOTH COUNT ANIMATION
+function animateValue(id, start, end, duration) {
+    let obj = document.getElementById(id);
+    let range = end - start;
+    let startTime = null;
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-
-// CLEAN FUNCTION (IMPORTANT FIX)
-function clean(text){
-    return text.toLowerCase().replace(/\s+/g,'').trim();
-}
-
-
-// ALLIANCE
-function getAlliance(party){
-    party = (party || "").toUpperCase();
-
-    if(["INC","IUML"].includes(party)) return "UDF";
-    if(["CPIM","CPI"].includes(party)) return "LDF";
-    if(["BJP"].includes(party)) return "NDA";
-
-    return "Others";
-}
-
-
-// COLOR
-function getColor(a){
-    if(a==="UDF") return "#1e90ff";
-    if(a==="LDF") return "#e74c3c";
-    if(a==="NDA") return "#f39c12";
-    return "#ccc";
-}
-
-
-let geoLayer;
-
-
-// LOAD MAP (FULL FIXED)
-async function loadMap(){
-
-    if(geoLayer){
-        map.removeLayer(geoLayer);
+    function step(timestamp) {
+        if (!startTime) startTime = timestamp;
+        let progress = Math.min((timestamp - startTime) / duration, 1);
+        obj.innerText = Math.floor(progress * range + start);
+        if (progress < 1) requestAnimationFrame(step);
     }
-
-    let geo = await fetch("/static/kerala.geojson").then(r=>r.json());
-
-    let api = await fetch("https://api.opendatakerala.org/api/kla2026/results/all.json")
-                .then(r=>r.json());
-
-    geoLayer = L.geoJSON(geo, {
-
-        style: function(feature){
-
-            let name = feature.properties.AC_NAME || feature.properties.name;
-
-            let candidates = api.filter(d =>
-                clean(d.constituency) === clean(name)
-            );
-
-            let winner = candidates.find(c => c.status.toLowerCase() === "won");
-
-            let alliance = "Others";
-
-            if(winner){
-                alliance = getAlliance(winner.party);
-            } else {
-                let lead = candidates.find(c => c.status.toLowerCase() === "leading");
-                if(lead) alliance = getAlliance(lead.party);
-            }
-
-            return {
-                fillColor: getColor(alliance),
-                weight:1,
-                color:"#333",
-                fillOpacity:0.8
-            };
-        },
-
-        onEachFeature: function(feature, layer){
-
-            let name = feature.properties.AC_NAME || feature.properties.name;
-
-            let candidates = api.filter(d =>
-                clean(d.constituency) === clean(name)
-            );
-
-            let winner = candidates.find(c => c.status.toLowerCase() === "won") || candidates[0];
-
-            if(winner){
-                layer.bindPopup(`
-                    <b>${name}</b><br>
-                    ${winner.candidate}<br>
-                    ${winner.party}<br>
-                    Votes: ${winner.votes}<br>
-                    Status: ${winner.status}
-                `);
-            }
-
-            layer.on("click", function(){
-                document.getElementById("constituencySelect").value = name;
-                loadConstituencyData();
-            });
-        }
-
-    }).addTo(map);
-
-    map.fitBounds(geoLayer.getBounds());  // 🔥 IMPORTANT
+    requestAnimationFrame(step);
 }
 
-loadMap();
+
+// 🌙 DARK MODE
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
 
 
-// LOAD DROPDOWN
+// 📊 LOAD SUMMARY
+async function loadSummary(){
+    let res = await fetch("/api/summary");
+    let json = await res.json();
+
+    let udf=0, ldf=0, nda=0, oth=0;
+
+    json.data.forEach(d=>{
+        if(d.Alliance==="UDF") udf=d.Seats;
+        if(d.Alliance==="LDF") ldf=d.Seats;
+        if(d.Alliance==="NDA") nda=d.Seats;
+        if(d.Alliance==="Others") oth=d.Seats;
+    });
+
+    animateValue("udf", parseInt(document.getElementById("udf").innerText)||0, udf, 800);
+    animateValue("ldf", parseInt(document.getElementById("ldf").innerText)||0, ldf, 800);
+    animateValue("nda", parseInt(document.getElementById("nda").innerText)||0, nda, 800);
+    animateValue("oth", parseInt(document.getElementById("oth").innerText)||0, oth, 800);
+
+    loadChart(json.data);
+}
+
+
+// 📊 CHART
+let chart;
+function loadChart(data){
+
+    let labels = data.map(d=>d.Alliance);
+    let seats = data.map(d=>d.Seats);
+
+    if(chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("barChart"), {
+        type:'bar',
+        data:{
+            labels:labels,
+            datasets:[{ data:seats }]
+        }
+    });
+}
+
+
+// 📍 LOAD CONSTITUENCIES
 async function loadConstituencies(){
     let res = await fetch("/api/constituencies");
     let json = await res.json();
 
-    let select = document.getElementById("constituencySelect");
+    let sel = document.getElementById("select");
 
     json.data.forEach(c=>{
-        select.innerHTML += `<option value="${c}">${c}</option>`;
+        sel.innerHTML += `<option value="${c}">${c}</option>`;
     });
 }
-loadConstituencies();
 
 
-// LOAD RESULTS
-async function loadConstituencyData(){
-    let name = document.getElementById("constituencySelect").value;
+// 📍 LOAD RESULTS
+async function loadData(){
+
+    let name = document.getElementById("select").value;
     if(!name) return;
 
-    let res = await fetch("/api/constituency/" + encodeURIComponent(name));
+    let div = document.getElementById("results");
+
+    // ⏳ LOADING
+    div.innerHTML = `<div class="loader"></div>`;
+
+    let res = await fetch("/api/constituency/"+name);
     let json = await res.json();
 
-    let div = document.getElementById("results");
     div.innerHTML = "";
 
-    json.data.forEach(r=>{
+    let maxVotes = Math.max(...json.data.map(r => Number(r.votes)));
+
+    json.data.forEach(r => {
+
+        let percent = maxVotes ? (r.votes / maxVotes) * 100 : 0;
+
+        let isWinner = (r.status || "").toLowerCase() === "won";
+
         div.innerHTML += `
-        <div class="card">
+        <div class="result ${isWinner ? "winner" : ""}">
             <b>${r.Candidate_Name}</b><br>
             ${r.Party}<br>
             Votes: ${r.votes}<br>
             Status: ${r.status}
-        </div>
-        `;
+
+            <div class="bar" style="width:${percent}%"></div>
+        </div>`;
     });
 }
 
 
-// SEARCH
-document.getElementById("searchBox").addEventListener("keyup", function(){
+// 🔍 SEARCH FILTER
+document.getElementById("search").addEventListener("keyup", function(){
     let val = this.value.toLowerCase();
-
-    let options = document.querySelectorAll("#constituencySelect option");
+    let options = document.querySelectorAll("#select option");
 
     options.forEach(o=>{
-        if(o.value.toLowerCase().includes(val)){
-            o.style.display = "block";
-        } else {
-            o.style.display = "none";
-        }
+        o.style.display = o.value.toLowerCase().includes(val) ? "block" : "none";
     });
 });
 
 
-// AUTO REFRESH
-setInterval(loadMap, 15000);
+// 🔄 AUTO REFRESH
+setInterval(loadSummary, 10000);
+
+
+// 🚀 INIT
+loadSummary();
+loadConstituencies();
 
 </script>
 
