@@ -4,11 +4,20 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Constituency Result</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-<link rel="stylesheet" href="/static/style.css">
+<title>
+    Constituency Results
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/style.css"
+>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
@@ -21,17 +30,36 @@
 
 <div class="navbar">
 
-    <h2>Kerala Election 2026</h2>
+    <h2>
+        Kerala Election 2026
+    </h2>
 
     <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/constituency">Constituency</a>
-        <a href="/partywise">Party Wise</a>
-        <a href="/candidates">Candidates</a>
+
+        <a href="/">
+            Home
+        </a>
+
+        <a href="/dashboard">
+            Dashboard
+        </a>
+
+        <a href="/constituency">
+            Constituency
+        </a>
+
+        <a href="/partywise">
+            Party Wise
+        </a>
+
+        <a href="/candidates">
+            Candidates
+        </a>
+
     </div>
 
 </div>
+
 
 <!-- CONTAINER -->
 
@@ -41,45 +69,77 @@
         Constituency Results
     </h2>
 
+
     <!-- DROPDOWN -->
 
-    <select id="dropdown" class="dropdown">
-        <option>Loading...</option>
+    <select
+        id="dropdown"
+        class="select-box"
+    >
+
+        <option value="">
+            Select Constituency
+        </option>
+
     </select>
+
 
     <!-- WINNER -->
 
     <div
         class="winner-box"
         id="winnerBox"
+        style="display:none;"
     ></div>
+
 
     <!-- GRID -->
 
-    <div class="grid">
+    <div class="grid-2">
 
         <!-- LEFT -->
 
         <div>
 
-            <div class="card">
+            <!-- BAR CHART -->
+
+            <div class="chart-box">
 
                 <canvas id="barChart"></canvas>
 
             </div>
 
-            <div class="table-card">
+
+            <!-- TABLE -->
+
+            <div class="table-box">
 
                 <table>
 
                     <thead>
 
                         <tr>
-                            <th>Candidate</th>
-                            <th>Party</th>
-                            <th>Total Votes</th>
-                            <th>%</th>
-                            <th>Alliance</th>
+
+                            <th>
+                                Candidate
+                            </th>
+
+                            <th>
+                                Party
+                            </th>
+
+                            <th>
+                                Total Votes
+                            </th>
+
+                            <th>
+                                %
+                            </th>
+
+                            <th>
+                                Alliance
+                            </th>
+
                         </tr>
 
                     </thead>
@@ -92,15 +152,22 @@
 
         </div>
 
+
         <!-- RIGHT -->
 
-        <div class="card">
+        <div>
 
-            <h3 class="chart-title">
-                Vote Share
-            </h3>
+            <!-- PIE -->
 
-            <canvas id="pieChart"></canvas>
+            <div class="chart-box">
+
+                <h3>
+                    Vote Share
+                </h3>
+
+                <canvas id="pieChart"></canvas>
+
+            </div>
 
         </div>
 
@@ -108,9 +175,16 @@
 
 </div>
 
+
 <script>
 
-/* PARTY → ALLIANCE */
+let fullData = [];
+
+let barChart;
+let pieChart;
+
+
+/* ALLIANCE */
 
 function getAlliance(p){
 
@@ -138,113 +212,48 @@ function getAlliance(p){
     }
 
     return "Others";
+
 }
 
 
-/* PARTY COLORS */
+/* COLORS */
 
 function getColor(p){
 
     let a = getAlliance(p);
 
     if(a === "UDF"){
-        return "#1e90ff";
+        return "#2563eb";
     }
 
     if(a === "LDF"){
-        return "#ff4b2b";
+        return "#dc2626";
     }
 
     if(a === "NDA"){
-        return "#ff9800";
+        return "#f59e0b";
     }
 
-    return "#777";
+    return "#64748b";
+
 }
 
 
-/* ANIMATE NUMBER */
+/* LOAD ALL DATA */
 
-function animateValue(el, end){
-
-    let duration = 800;
-    let startTime = null;
-
-    function step(ts){
-
-        if(!startTime){
-            startTime = ts;
-        }
-
-        let progress = Math.min(
-            (ts - startTime) / duration,
-            1
-        );
-
-        el.innerText = Math.floor(progress * end);
-
-        if(progress < 1){
-            requestAnimationFrame(step);
-        }
-    }
-
-    requestAnimationFrame(step);
-}
-
-
-/* LOAD DROPDOWN */
-
-async function loadDropdown(){
+async function loadData(){
 
     try{
 
-        let res = await fetch("/api/results");
+        let res = await fetch(
+            "/api/results"
+        );
 
         let json = await res.json();
 
-        let names = [
-            ...new Set(
-                json.data.map(
-                    d => d.Constituency
-                )
-            )
-        ];
+        fullData = json.data || [];
 
-        names.sort();
-
-        let dd = document.getElementById("dropdown");
-
-        dd.innerHTML = `
-            <option>
-                Select Constituency
-            </option>
-        `;
-
-        names.forEach(n => {
-
-            dd.innerHTML += `
-                <option value="${n}">
-                    ${n}
-                </option>
-            `;
-
-        });
-
-        // AUTO LOAD FROM URL
-
-        let params = new URLSearchParams(
-            window.location.search
-        );
-
-        let selected = params.get("name");
-
-        if(selected){
-
-            dd.value = selected;
-
-            loadData(selected);
-
-        }
+        populateDropdown();
 
     }
 
@@ -256,108 +265,170 @@ async function loadDropdown(){
 
 }
 
-
-let barChart;
-let pieChart;
+loadData();
 
 
-/* LOAD CONSTITUENCY DATA */
+/* POPULATE DROPDOWN */
 
-async function loadData(name){
+function populateDropdown(){
 
-    let res = await fetch(
-        "/api/constituency/" +
-        encodeURIComponent(name)
-    );
+    let dropdown =
+        document.getElementById(
+            "dropdown"
+        );
 
-    let json = await res.json();
+    let constituencies = [
 
-    let tbody = document.getElementById("body");
+        ...new Set(
+
+            fullData.map(
+                d => d.Constituency
+            )
+
+        )
+
+    ];
+
+    constituencies.sort();
+
+    constituencies.forEach(name => {
+
+        dropdown.innerHTML += `
+
+        <option value="${name}">
+            ${name}
+        </option>
+
+        `;
+
+    });
+
+}
+
+
+/* LOAD CONSTITUENCY */
+
+function loadConstituency(name){
+
+    let rows =
+        fullData.filter(
+            r => r.Constituency === name
+        );
+
+    let tbody =
+        document.getElementById(
+            "body"
+        );
 
     tbody.innerHTML = "";
 
-    let labels = [];
-    let votes = [];
-    let colors = [];
+    if(rows.length === 0){
+        return;
+    }
+
+
+    /* TOTAL */
 
     let totalVotes = 0;
 
-    let allianceMap = {
-        UDF:0,
-        LDF:0,
-        NDA:0,
-        Others:0
-    };
+    rows.forEach(r => {
 
-    let winner = null;
-
-    json.data.forEach(r => {
-
-        let total = parseInt(r.Votes || 0);
-
-        labels.push(r.Candidate);
-
-        votes.push(total);
-
-        colors.push(
-            getColor(r.Party)
+        totalVotes += parseInt(
+            r.Votes || 0
         );
-
-        totalVotes += total;
-
-        let alliance = getAlliance(r.Party);
-
-        allianceMap[alliance] += total;
-
-        if(
-            !winner
-            ||
-            total > winner.Votes
-        ){
-
-            winner = {
-                ...r,
-                Votes: total
-            };
-
-        }
 
     });
 
 
-    /* WINNER BOX */
+    /* WINNER */
 
-    let box = document.getElementById(
-        "winnerBox"
+    let winner = rows.reduce(
+
+        (a,b) =>
+
+        parseInt(a.Votes || 0)
+        >
+        parseInt(b.Votes || 0)
+
+        ? a : b
+
     );
 
-    if(winner){
 
-        box.style.display = "block";
+    document
+    .getElementById(
+        "winnerBox"
+    )
+    .style.display = "block";
 
-        box.innerHTML = `
-            🏆 Winner:
-            ${winner.Candidate}
-            (${winner.Party})
-            -
-            ${winner.Votes} votes
-        `;
 
-    }
+    document
+    .getElementById(
+        "winnerBox"
+    )
+    .innerHTML =
+
+        "🏆 Winner : "
+
+        +
+
+        winner.Candidate
+
+        +
+
+        " ("
+
+        +
+
+        winner.Party
+
+        +
+
+        ") - "
+
+        +
+
+        Number(
+            winner.Votes
+        ).toLocaleString()
+
+        +
+
+        " votes";
 
 
     /* TABLE */
 
-    json.data.forEach(r => {
+    rows.forEach(r => {
+
+        let votes =
+            parseInt(
+                r.Votes || 0
+            );
+
+        let percent =
+            totalVotes
+            ?
+            (
+                (
+                    votes /
+                    totalVotes
+                ) * 100
+            ).toFixed(1)
+            :
+            0;
+
+        let alliance =
+            getAlliance(
+                r.Party
+            );
 
         let cls =
             r.Candidate === winner.Candidate
-            ? "winner"
-            : "";
-
-        let alliance = getAlliance(
-            r.Party
-        );
+            ?
+            "winner-row"
+            :
+            "";
 
         tbody.innerHTML += `
 
@@ -371,12 +442,13 @@ async function loadData(name){
                 ${r.Party}
             </td>
 
-            <td class="count">
-                ${r.Votes}
+            <td>
+                ${Number(votes)
+                .toLocaleString()}
             </td>
 
             <td>
-                ${r.Percent || 0}%
+                ${percent}%
             </td>
 
             <td>
@@ -390,18 +462,38 @@ async function loadData(name){
     });
 
 
-    /* ANIMATE COUNTS */
+    /* CHARTS */
 
-    document
-    .querySelectorAll(".count")
-    .forEach((el, i) => {
+    drawCharts(rows,totalVotes);
 
-        animateValue(el, votes[i]);
-
-    });
+}
 
 
-    /* BAR CHART */
+/* DRAW CHARTS */
+
+function drawCharts(rows,totalVotes){
+
+    let labels =
+        rows.map(
+            r => r.Candidate
+        );
+
+    let votes =
+        rows.map(
+            r => parseInt(
+                r.Votes || 0
+            )
+        );
+
+    let colors =
+        rows.map(
+            r => getColor(
+                r.Party
+            )
+        );
+
+
+    /* BAR */
 
     if(barChart){
         barChart.destroy();
@@ -414,42 +506,74 @@ async function loadData(name){
         ),
 
         {
+
             type:"bar",
 
             data:{
-                labels,
+
+                labels:labels,
 
                 datasets:[{
+
+                    label:"Votes",
+
                     data:votes,
-                    backgroundColor:colors
+
+                    backgroundColor:colors,
+
+                    borderRadius:12
+
                 }]
+
             },
 
             options:{
 
                 responsive:true,
 
-                animation:{
-                    duration:1000
-                },
-
                 plugins:{
 
                     legend:{
-                        display:false
+                        labels:{
+                            color:"white"
+                        }
                     },
 
                     datalabels:{
-                        color:"#000",
 
-                        formatter:(v) =>
+                        color:"white",
 
+                        anchor:"end",
+
+                        align:"top",
+
+                        formatter:(v)=>
+
+                        (
                             (
-                                (v / totalVotes) * 100
-                            ).toFixed(1)
+                                v /
+                                totalVotes
+                            ) * 100
+                        ).toFixed(1)
 
-                            + "%"
+                        + "%"
 
+                    }
+
+                },
+
+                scales:{
+
+                    y:{
+                        ticks:{
+                            color:"white"
+                        }
+                    },
+
+                    x:{
+                        ticks:{
+                            color:"white"
+                        }
                     }
 
                 }
@@ -463,7 +587,7 @@ async function loadData(name){
     );
 
 
-    /* PIE CHART */
+    /* PIE */
 
     if(pieChart){
         pieChart.destroy();
@@ -481,24 +605,29 @@ async function loadData(name){
 
             data:{
 
-                labels:Object.keys(
-                    allianceMap
-                ),
+                labels:labels,
 
                 datasets:[{
 
-                    data:Object.values(
-                        allianceMap
-                    ),
+                    data:votes,
 
-                    backgroundColor:[
-                        "#1e90ff",
-                        "#ff4b2b",
-                        "#ff9800",
-                        "#777"
-                    ]
+                    backgroundColor:colors
 
                 }]
+
+            },
+
+            options:{
+
+                plugins:{
+
+                    legend:{
+                        labels:{
+                            color:"white"
+                        }
+                    }
+
+                }
 
             }
 
@@ -509,27 +638,26 @@ async function loadData(name){
 }
 
 
-/* DROPDOWN EVENT */
+/* EVENT */
 
 document
-.getElementById("dropdown")
-.addEventListener("change", e => {
+.getElementById(
+    "dropdown"
+)
+.addEventListener(
+    "change",
+    e => {
 
-    if(
-        e.target.value !==
-        "Select Constituency"
-    ){
+        if(e.target.value){
 
-        loadData(
-            e.target.value
-        );
+            loadConstituency(
+                e.target.value
+            );
+
+        }
 
     }
-
-});
-
-
-loadDropdown();
+);
 
 </script>
 
