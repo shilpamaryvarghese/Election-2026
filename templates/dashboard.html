@@ -19,8 +19,6 @@
     href="/static/style.css"
 >
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 
 <body>
@@ -82,7 +80,7 @@
     </h1>
 
     <p class="subtitle">
-        Real-time Kerala Election 2026 Candidate Results
+        Kerala Election 2026 Candidate Results
     </p>
 
 
@@ -93,13 +91,13 @@
         <input
             type="text"
             id="search"
-            placeholder="Search constituency, candidate or party..."
+            placeholder="Search constituency, candidate or alliance..."
         >
 
     </div>
 
 
-    <!-- STATS -->
+    <!-- LIVE STATS -->
 
     <div class="seat-container">
 
@@ -132,10 +130,10 @@
         <div class="seat-card nda">
 
             <h3>
-                Leading
+                UDF Candidates
             </h3>
 
-            <h1 id="leadingCount">
+            <h1 id="udfCount">
                 0
             </h1>
 
@@ -145,10 +143,10 @@
         <div class="seat-card oth">
 
             <h3>
-                Won
+                LDF Candidates
             </h3>
 
-            <h1 id="wonCount">
+            <h1 id="ldfCount">
                 0
             </h1>
 
@@ -176,19 +174,11 @@
                     </th>
 
                     <th>
-                        Party
+                        Alliance
                     </th>
 
                     <th>
                         Votes
-                    </th>
-
-                    <th>
-                        %
-                    </th>
-
-                    <th>
-                        Status
                     </th>
 
                 </tr>
@@ -240,29 +230,23 @@ async function loadData(){
 loadData();
 
 
-/* PARTY COLORS */
+/* ALLIANCE COLORS */
 
-function getPartyColor(p){
+function getColor(alliance){
 
-    p = (p || "").toUpperCase();
+    alliance =
+        (alliance || "")
+        .toUpperCase();
 
-    if(
-        p.includes("INC")
-    ){
+    if(alliance.includes("UDF")){
         return "#2563eb";
     }
 
-    if(
-        p.includes("CPM")
-        ||
-        p.includes("CPI")
-    ){
+    if(alliance.includes("LDF")){
         return "#dc2626";
     }
 
-    if(
-        p.includes("BJP")
-    ){
+    if(alliance.includes("NDA")){
         return "#f59e0b";
     }
 
@@ -271,7 +255,7 @@ function getPartyColor(p){
 }
 
 
-/* RENDER TABLE */
+/* TABLE */
 
 function renderTable(data){
 
@@ -285,29 +269,28 @@ function renderTable(data){
 
     data.forEach(r => {
 
-        let color =
-            getPartyColor(
-                r.Party
+        let constituency =
+            r.constituency_Name
+            ||
+            "-";
+
+        let candidate =
+            r.name
+            ||
+            "-";
+
+        let alliance =
+            r.alliance
+            ||
+            "-";
+
+        let votes =
+            parseInt(
+                r.votes || 0
             );
 
-        let status =
-            (
-                r.Status || "-"
-            ).toLowerCase();
-
-        let badgeClass = "status-other";
-
-        if(
-            status.includes("won")
-        ){
-            badgeClass = "status-won";
-        }
-
-        else if(
-            status.includes("lead")
-        ){
-            badgeClass = "status-leading";
-        }
+        let color =
+            getColor(alliance);
 
 
         tbody.innerHTML += `
@@ -316,7 +299,7 @@ function renderTable(data){
 
             <td>
 
-                ${r.Constituency || "-"}
+                ${constituency}
 
             </td>
 
@@ -324,7 +307,7 @@ function renderTable(data){
 
                 <strong>
 
-                    ${r.Candidate || "-"}
+                    ${candidate}
 
                 </strong>
 
@@ -339,7 +322,7 @@ function renderTable(data){
                     "
                 >
 
-                    ${r.Party || "-"}
+                    ${alliance}
 
                 </span>
 
@@ -347,25 +330,7 @@ function renderTable(data){
 
             <td>
 
-                ${Number(
-                    r.Votes || 0
-                ).toLocaleString()}
-
-            </td>
-
-            <td>
-
-                ${r.Percent || 0}%
-
-            </td>
-
-            <td>
-
-                <span class="${badgeClass}">
-
-                    ${r.Status || "-"}
-
-                </span>
+                ${votes.toLocaleString()}
 
             </td>
 
@@ -378,7 +343,7 @@ function renderTable(data){
 }
 
 
-/* UPDATE STATS */
+/* LIVE STATS */
 
 function updateStats(data){
 
@@ -387,32 +352,32 @@ function updateStats(data){
 
     let totalVotes = 0;
 
-    let leading = 0;
+    let udf = 0;
 
-    let won = 0;
+    let ldf = 0;
 
 
     data.forEach(r => {
 
         totalVotes += parseInt(
-            r.Votes || 0
+            r.votes || 0
         );
 
-        let status =
+        let alliance =
             (
-                r.Status || ""
-            ).toLowerCase();
+                r.alliance || ""
+            ).toUpperCase();
 
         if(
-            status.includes("lead")
+            alliance.includes("UDF")
         ){
-            leading++;
+            udf++;
         }
 
         if(
-            status.includes("won")
+            alliance.includes("LDF")
         ){
-            won++;
+            ldf++;
         }
 
     });
@@ -422,7 +387,8 @@ function updateStats(data){
     .getElementById(
         "totalCandidates"
     )
-    .innerText = totalCandidates;
+    .innerText =
+        totalCandidates;
 
 
     document
@@ -430,23 +396,22 @@ function updateStats(data){
         "totalVotes"
     )
     .innerText =
-
-        Number(totalVotes)
+        totalVotes
         .toLocaleString();
 
 
     document
     .getElementById(
-        "leadingCount"
+        "udfCount"
     )
-    .innerText = leading;
+    .innerText = udf;
 
 
     document
     .getElementById(
-        "wonCount"
+        "ldfCount"
     )
-    .innerText = won;
+    .innerText = ldf;
 
 }
 
@@ -462,14 +427,16 @@ document
     function(){
 
         let value =
-            this.value.toLowerCase();
+            this.value
+            .toLowerCase();
 
         let filtered =
 
             fullData.filter(r =>
 
                 (
-                    r.Constituency || ""
+                    r.constituency_Name
+                    || ""
                 )
                 .toLowerCase()
                 .includes(value)
@@ -477,7 +444,8 @@ document
                 ||
 
                 (
-                    r.Candidate || ""
+                    r.name
+                    || ""
                 )
                 .toLowerCase()
                 .includes(value)
@@ -485,7 +453,8 @@ document
                 ||
 
                 (
-                    r.Party || ""
+                    r.alliance
+                    || ""
                 )
                 .toLowerCase()
                 .includes(value)
