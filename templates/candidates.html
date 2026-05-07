@@ -91,7 +91,7 @@
         <input
             type="text"
             id="searchInput"
-            placeholder="Search candidate, party or alliance..."
+            placeholder="Search candidate name..."
         >
 
         <button
@@ -146,19 +146,23 @@ async function loadData(){
 loadData();
 
 
-/* PARTY COLOR */
+/* ALLIANCE COLOR */
 
 function getColor(alliance){
 
-    if(alliance === "UDF"){
+    alliance =
+        (alliance || "")
+        .toUpperCase();
+
+    if(alliance.includes("UDF")){
         return "#2563eb";
     }
 
-    if(alliance === "LDF"){
+    if(alliance.includes("LDF")){
         return "#dc2626";
     }
 
-    if(alliance === "NDA"){
+    if(alliance.includes("NDA")){
         return "#f59e0b";
     }
 
@@ -211,23 +215,7 @@ function searchCandidate(){
         fullData.filter(r =>
 
             (
-                r.Candidate || ""
-            )
-            .toLowerCase()
-            .includes(value)
-
-            ||
-
-            (
-                r.Party || ""
-            )
-            .toLowerCase()
-            .includes(value)
-
-            ||
-
-            (
-                r.Alliance || ""
+                r.name || ""
             )
             .toLowerCase()
             .includes(value)
@@ -254,15 +242,14 @@ function searchCandidate(){
 
     filtered.forEach(r => {
 
-        let alliance =
-            r.Alliance || "Others";
-
         let color =
-            getColor(alliance);
+            getColor(
+                r.alliance
+            );
 
         let photo =
 
-            r.Photo
+            r.photo
 
             ?
 
@@ -270,7 +257,7 @@ function searchCandidate(){
 
             +
 
-            r.Photo
+            r.photo
 
             :
 
@@ -279,7 +266,7 @@ function searchCandidate(){
             +
 
             encodeURIComponent(
-                r.Candidate
+                r.name
             )
 
             +
@@ -289,14 +276,7 @@ function searchCandidate(){
 
         container.innerHTML += `
 
-        <div
-            class="candidate-card"
-            onclick="
-                viewConstituency(
-                    '${r.Constituency}'
-                )
-            "
-        >
+        <div class="candidate-card">
 
             <!-- TOP -->
 
@@ -311,22 +291,31 @@ function searchCandidate(){
 
                     <h2 class="candidate-name">
 
-                        ${r.Candidate}
+                        ${r.name}
 
                     </h2>
 
-                    <p
-                        class="candidate-party"
-                        style="
-                            color:${color}
-                        "
-                    >
+                    <p class="candidate-ml">
 
-                        ${r.Party}
+                        ${r.name_ml || ""}
 
                     </p>
 
                 </div>
+
+            </div>
+
+
+            <!-- PARTY -->
+
+            <div
+                class="candidate-party-box"
+                style="
+                    background:${color};
+                "
+            >
+
+                ${r.alliance}
 
             </div>
 
@@ -342,7 +331,9 @@ function searchCandidate(){
                     </span>
 
                     <strong>
-                        ${alliance}
+
+                        ${r.alliance}
+
                     </strong>
 
                 </div>
@@ -350,11 +341,13 @@ function searchCandidate(){
                 <div class="detail-box">
 
                     <span>
-                        Constituency
+                        Party
                     </span>
 
                     <strong>
-                        ${r.Constituency}
+
+                        ${r.party}
+
                     </strong>
 
                 </div>
@@ -368,7 +361,7 @@ function searchCandidate(){
                     <strong>
 
                         ${Number(
-                            r.Votes || 0
+                            r.votes || 0
                         ).toLocaleString()}
 
                     </strong>
@@ -378,33 +371,14 @@ function searchCandidate(){
                 <div class="detail-box">
 
                     <span>
-                        Status
+                        Sitting
                     </span>
 
                     <strong>
 
-                        ${r.Status || "-"}
+                        ${r.sitting || "-"}
 
                     </strong>
-
-                </div>
-
-            </div>
-
-
-            <!-- PROGRESS -->
-
-            <div class="vote-bar">
-
-                <div
-                    class="vote-fill"
-                    style="
-                        width:${r.Percent || 0}%;
-                        background:${color}
-                    "
-                >
-
-                    ${r.Percent || 0}%
 
                 </div>
 
@@ -419,7 +393,7 @@ function searchCandidate(){
 }
 
 
-/* ENTER SUPPORT */
+/* ENTER KEY */
 
 document
 .getElementById(
@@ -430,26 +404,13 @@ document
     function(e){
 
         if(e.key === "Enter"){
+
             searchCandidate();
+
         }
 
     }
 );
-
-
-/* REDIRECT */
-
-function viewConstituency(name){
-
-    window.location.href =
-
-        "/constituency?name="
-
-        +
-
-        encodeURIComponent(name);
-
-}
 
 </script>
 
