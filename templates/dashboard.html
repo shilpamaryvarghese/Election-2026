@@ -1,64 +1,359 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<title>Dashboard</title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Live Dashboard</title>
+
+<link rel="stylesheet" href="/static/style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-body { font-family: Arial; }
-table { width:100%; border-collapse: collapse; }
-th { background:#0b3d91; color:white; }
-td,th { padding:8px; border:1px solid #ddd; }
-</style>
 </head>
 
 <body>
 
-<h2>Live Results</h2>
+<!-- NAVBAR -->
 
-<table>
-<thead>
-<tr>
-<th>Constituency</th>
-<th>Candidate</th>
-<th>Party</th>
-<th>Total</th>
-<th>%</th>
-</tr>
-</thead>
-<tbody id="body"></tbody>
-</table>
+<div class="navbar">
+
+    <h2>Kerala Election 2026</h2>
+
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
+    </div>
+
+</div>
+
+<!-- CONTAINER -->
+
+<div class="container">
+
+    <h2 class="page-title">
+        Live Election Results
+    </h2>
+
+    <!-- SEARCH -->
+
+    <div class="search-area">
+
+        <input
+            type="text"
+            id="search"
+            placeholder="Search constituency, candidate or party..."
+        >
+
+    </div>
+
+    <!-- STATS -->
+
+    <div class="stats-grid">
+
+        <div class="stat-card">
+
+            <div class="stat-title">
+                Total Seats
+            </div>
+
+            <div
+                class="stat-value"
+                id="totalSeats"
+            >
+                0
+            </div>
+
+        </div>
+
+        <div class="stat-card udf">
+
+            <div class="stat-title">
+                UDF
+            </div>
+
+            <div
+                class="stat-value"
+                id="udfSeats"
+            >
+                0
+            </div>
+
+        </div>
+
+        <div class="stat-card ldf">
+
+            <div class="stat-title">
+                LDF
+            </div>
+
+            <div
+                class="stat-value"
+                id="ldfSeats"
+            >
+                0
+            </div>
+
+        </div>
+
+        <div class="stat-card nda">
+
+            <div class="stat-title">
+                NDA
+            </div>
+
+            <div
+                class="stat-value"
+                id="ndaSeats"
+            >
+                0
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- TABLE -->
+
+    <div class="table-card">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>Constituency</th>
+                    <th>Candidate</th>
+                    <th>Party</th>
+                    <th>Votes</th>
+                    <th>%</th>
+                    <th>Status</th>
+                </tr>
+
+            </thead>
+
+            <tbody id="body"></tbody>
+
+        </table>
+
+    </div>
+
+</div>
 
 <script>
 
-async function load(){
+let fullData = [];
 
-    let res = await fetch("/api/results");
-    let json = await res.json();
 
-    let tbody = document.getElementById("body");
-    tbody.innerHTML = "";
+/* PARTY → ALLIANCE */
 
-    json.data.forEach(r=>{
-        tbody.innerHTML += `
-        <tr>
-            <td>${r.Constituency}</td>
-            <td>${r.Candidate}</td>
-            <td>${r.Party}</td>
-            <td>${r.Total}</td>
-            <td>${r.Percent}</td>
-        </tr>`;
-    });
+function getAlliance(p){
+
+    p = (p || "").toUpperCase();
+
+    if(
+        ["INC","IUML","RSP"]
+        .some(x => p.includes(x))
+    ){
+        return "UDF";
+    }
+
+    if(
+        ["CPM","CPI"]
+        .some(x => p.includes(x))
+    ){
+        return "LDF";
+    }
+
+    if(
+        ["BJP","BDJS"]
+        .some(x => p.includes(x))
+    ){
+        return "NDA";
+    }
+
+    return "OTHERS";
 }
 
-document.getElementById("search").addEventListener("keyup", function(){
-    let val = this.value.toLowerCase();
-    document.querySelectorAll("#body tr").forEach(row=>{
-        row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+
+/* LOAD DATA */
+
+async function load(){
+
+    try{
+
+        let res = await fetch("/api/results");
+
+        let json = await res.json();
+
+        fullData = json.data || [];
+
+        renderTable(fullData);
+
+        updateStats(fullData);
+
+    }
+
+    catch(err){
+
+        console.log(err);
+
+    }
+
+}
+
+
+/* UPDATE STATS */
+
+function updateStats(data){
+
+    document.getElementById(
+        "totalSeats"
+    ).innerText = data.length;
+
+    let udf = 0;
+    let ldf = 0;
+    let nda = 0;
+
+    data.forEach(r => {
+
+        let alliance = getAlliance(
+            r.Party
+        );
+
+        if(alliance === "UDF"){
+            udf++;
+        }
+
+        else if(alliance === "LDF"){
+            ldf++;
+        }
+
+        else if(alliance === "NDA"){
+            nda++;
+        }
+
     });
+
+    document.getElementById(
+        "udfSeats"
+    ).innerText = udf;
+
+    document.getElementById(
+        "ldfSeats"
+    ).innerText = ldf;
+
+    document.getElementById(
+        "ndaSeats"
+    ).innerText = nda;
+
+}
+
+
+/* RENDER TABLE */
+
+function renderTable(data){
+
+    let tbody = document.getElementById(
+        "body"
+    );
+
+    tbody.innerHTML = "";
+
+    data.forEach(r => {
+
+        let statusClass = "";
+
+        if(
+            (r.Status || "")
+            .toLowerCase()
+            === "won"
+        ){
+            statusClass = "winner-row";
+        }
+
+        tbody.innerHTML += `
+
+        <tr class="${statusClass}">
+
+            <td>
+                ${r.Constituency}
+            </td>
+
+            <td>
+                ${r.Candidate}
+            </td>
+
+            <td>
+                ${r.Party}
+            </td>
+
+            <td>
+                ${r.Votes}
+            </td>
+
+            <td>
+                ${r.Percent || 0}%
+            </td>
+
+            <td>
+                ${r.Status || ""}
+            </td>
+
+        </tr>
+
+        `;
+
+    });
+
+}
+
+
+/* SEARCH */
+
+document
+.getElementById("search")
+.addEventListener("keyup", function(){
+
+    let val = this.value.toLowerCase();
+
+    let filtered = fullData.filter(r =>
+
+        (r.Constituency || "")
+        .toLowerCase()
+        .includes(val)
+
+        ||
+
+        (r.Candidate || "")
+        .toLowerCase()
+        .includes(val)
+
+        ||
+
+        (r.Party || "")
+        .toLowerCase()
+        .includes(val)
+
+    );
+
+    renderTable(filtered);
+
 });
 
+
+/* AUTO REFRESH */
+
 setInterval(load, 15000);
+
+
+/* INITIAL LOAD */
+
 load();
 
 </script>
