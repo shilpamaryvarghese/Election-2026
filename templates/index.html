@@ -1,135 +1,23 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Kerala Election 2026</title>
 
 <link rel="stylesheet" href="/static/style.css">
-
-<style>
-
-/* NAVBAR */
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #0b3d91;
-    color: white;
-    padding: 12px 20px;
-}
-
-.navbar h2 { margin: 0; }
-
-.nav-links a {
-    color: white;
-    margin-left: 15px;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.nav-links a:hover {
-    text-decoration: underline;
-}
-
-/* HERO */
-.hero {
-    background: linear-gradient(135deg, #0b3d91, #1e90ff);
-    color: white;
-    padding: 60px 20px;
-    text-align: center;
-}
-
-.hero h1 { font-size: 42px; margin: 0; }
-.hero p { margin-top: 10px; font-size: 18px; }
-
-/* SEAT CARDS */
-.seat-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
-    padding: 20px;
-}
-
-.seat-card {
-    color: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-    transition: 0.3s;
-}
-
-.seat-card:hover {
-    transform: scale(1.05);
-}
-
-/* COLORS */
-.udf { background: linear-gradient(135deg, #1e90ff, #00c6ff); }
-.ldf { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
-.nda { background: linear-gradient(135deg, #f7971e, #ffd200); }
-.oth { background: linear-gradient(135deg, #636363, #a2ab58); }
-
-.seat-card h1 {
-    font-size: 40px;
-    margin: 5px 0;
-}
-
-.seat-card p {
-    font-size: 14px;
-}
-
-/* GRID NAV */
-.grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-    padding: 20px;
-}
-
-.card {
-    background: white;
-    padding: 25px;
-    border-radius: 12px;
-    text-align: center;
-    text-decoration: none;
-    color: black;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    transition: 0.3s;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-}
-
-/* FOOTER */
-.footer {
-    text-align: center;
-    padding: 15px;
-    background: #eee;
-}
-
-/* DARK MODE */
-body.dark {
-    background: #121212;
-    color: white;
-}
-
-body.dark .card {
-    background: #1e1e1e;
-    color: white;
-}
-
-body.dark .footer {
-    background: #111;
-}
-
-</style>
 
 </head>
 
 <body>
 
 <!-- NAVBAR -->
+
 <div class="navbar">
+
     <h2>Kerala Election 2026</h2>
 
     <div class="nav-links">
@@ -138,140 +26,398 @@ body.dark .footer {
         <a href="/constituency">Constituency</a>
         <a href="/partywise">Party Wise</a>
         <a href="/candidates">Candidates</a>
-        <a href="#" onclick="toggleDark()">🌙</a>
+
+        <a
+            href="#"
+            onclick="toggleDark()"
+        >
+            🌙
+        </a>
     </div>
+
 </div>
 
 <!-- HERO -->
+
 <div class="hero">
-    <h1>Live Election Results</h1>
-    <p>Real-time results, analytics and constituency insights</p>
+
+    <h1>
+        Live Election Results
+    </h1>
+
+    <p>
+        Real-time Kerala Assembly Election 2026 Dashboard
+    </p>
+
 </div>
 
-<!-- 🔥 LIVE SEAT CARDS -->
+<!-- LIVE SEATS -->
+
 <div class="seat-container">
 
+    <!-- UDF -->
+
     <div class="seat-card udf">
+
         <h3>UDF</h3>
-        <h1 id="udf">...</h1>
-        <p id="udf_votes">0 votes</p>
+
+        <h1 id="udf">
+            0
+        </h1>
+
+        <p id="udf_votes">
+            0 Votes
+        </p>
+
     </div>
+
+    <!-- LDF -->
 
     <div class="seat-card ldf">
+
         <h3>LDF</h3>
-        <h1 id="ldf">...</h1>
-        <p id="ldf_votes">0 votes</p>
+
+        <h1 id="ldf">
+            0
+        </h1>
+
+        <p id="ldf_votes">
+            0 Votes
+        </p>
+
     </div>
+
+    <!-- NDA -->
 
     <div class="seat-card nda">
+
         <h3>NDA</h3>
-        <h1 id="nda">...</h1>
-        <p id="nda_votes">0 votes</p>
+
+        <h1 id="nda">
+            0
+        </h1>
+
+        <p id="nda_votes">
+            0 Votes
+        </p>
+
     </div>
 
+    <!-- OTHERS -->
+
     <div class="seat-card oth">
+
         <h3>Others</h3>
-        <h1 id="oth">...</h1>
-        <p id="oth_votes">0 votes</p>
+
+        <h1 id="oth">
+            0
+        </h1>
+
+        <p id="oth_votes">
+            0 Votes
+        </p>
+
     </div>
 
 </div>
 
-<!-- NAVIGATION CARDS -->
+<!-- QUICK LINKS -->
+
 <div class="grid">
 
-    <a href="/dashboard" class="card">
-        <h3>📃 Full Result</h3>
-        <p>View overall election results</p>
+    <a
+        href="/dashboard"
+        class="card"
+    >
+
+        <h3>
+            📃 Full Results
+        </h3>
+
+        <p>
+            View all constituency results
+        </p>
+
     </a>
 
-    <a href="/constituency" class="card">
-        <h3>📍 Constituency</h3>
-        <p>Check constituency-wise results</p>
+    <a
+        href="/constituency"
+        class="card"
+    >
+
+        <h3>
+            📍 Constituency
+        </h3>
+
+        <p>
+            Detailed constituency analytics
+        </p>
+
     </a>
 
-    <a href="/partywise" class="card">
-        <h3>🏛️ Party Wise</h3>
-        <p>Compare party performance</p>
+    <a
+        href="/partywise"
+        class="card"
+    >
+
+        <h3>
+            🏛️ Party Wise
+        </h3>
+
+        <p>
+            Compare party performances
+        </p>
+
     </a>
 
-    <a href="/candidates" class="card">
-        <h3>🔍 Candidates</h3>
-        <p>Search candidate results</p>
+    <a
+        href="/candidates"
+        class="card"
+    >
+
+        <h3>
+            🔍 Candidates
+        </h3>
+
+        <p>
+            Search candidate information
+        </p>
+
     </a>
 
 </div>
 
 <!-- FOOTER -->
+
 <div class="footer">
+
     © 2026 Kerala Election Dashboard
+
 </div>
 
 <script>
 
-// DARK MODE
+/* DARK MODE */
+
 function toggleDark(){
-    document.body.classList.toggle("dark");
+
+    document.body.classList.toggle(
+        "dark"
+    );
+
 }
 
 
-// ANIMATION
-function animateValue(id, start, end, duration) {
+/* ANIMATE NUMBER */
+
+function animateValue(
+    id,
+    start,
+    end,
+    duration
+){
+
     let obj = document.getElementById(id);
+
     let range = end - start;
+
     let startTime = null;
 
-    function step(timestamp) {
-        if (!startTime) startTime = timestamp;
-        let progress = Math.min((timestamp - startTime) / duration, 1);
-        obj.innerText = Math.floor(progress * range + start);
-        if (progress < 1) requestAnimationFrame(step);
+    function step(timestamp){
+
+        if(!startTime){
+            startTime = timestamp;
+        }
+
+        let progress = Math.min(
+            (timestamp - startTime)
+            /
+            duration,
+            1
+        );
+
+        obj.innerText = Math.floor(
+            progress * range + start
+        );
+
+        if(progress < 1){
+            requestAnimationFrame(step);
+        }
+
     }
 
     requestAnimationFrame(step);
+
 }
 
 
-// LOAD SUMMARY
+/* PARTY → ALLIANCE */
+
+function getAlliance(p){
+
+    p = (p || "").toUpperCase();
+
+    if(
+        ["INC","IUML","RSP"]
+        .some(x => p.includes(x))
+    ){
+        return "UDF";
+    }
+
+    if(
+        ["CPM","CPI"]
+        .some(x => p.includes(x))
+    ){
+        return "LDF";
+    }
+
+    if(
+        ["BJP","BDJS"]
+        .some(x => p.includes(x))
+    ){
+        return "NDA";
+    }
+
+    return "Others";
+
+}
+
+
+/* LOAD SUMMARY */
+
 async function loadSummary(){
 
-    let res = await fetch("/api/summary");
-    let json = await res.json();
+    try{
 
-    let totalVotes = 0;
+        let res = await fetch(
+            "/api/results"
+        );
 
-    let dataMap = {
-        UDF: {seats:0, votes:0},
-        LDF: {seats:0, votes:0},
-        NDA: {seats:0, votes:0},
-        Others: {seats:0, votes:0}
-    };
+        let json = await res.json();
 
-    json.data.forEach(d=>{
-        dataMap[d.Alliance] = {
-            seats: d.Seats,
-            votes: d.Votes
+        let results = json.data || [];
+
+        let summary = {
+
+            UDF:{
+                seats:0,
+                votes:0
+            },
+
+            LDF:{
+                seats:0,
+                votes:0
+            },
+
+            NDA:{
+                seats:0,
+                votes:0
+            },
+
+            Others:{
+                seats:0,
+                votes:0
+            }
+
         };
-        totalVotes += d.Votes;
-    });
 
-    ["UDF","LDF","NDA","Others"].forEach(key => {
+        let totalVotes = 0;
 
-        let seats = dataMap[key].seats || 0;
-        let votes = dataMap[key].votes || 0;
+        results.forEach(r => {
 
-        let percent = totalVotes ? ((votes/totalVotes)*100).toFixed(1) : 0;
+            let alliance = getAlliance(
+                r.Party
+            );
 
-        animateValue(key.toLowerCase(), 0, seats, 800);
+            let votes = parseInt(
+                r.Votes || 0
+            );
 
-        document.getElementById(key.toLowerCase() + "_votes")
-            .innerText = votes.toLocaleString() + " (" + percent + "%)";
-    });
+            summary[alliance].votes += votes;
+
+            totalVotes += votes;
+
+            let status = (
+                r.Status || ""
+            ).toLowerCase();
+
+            if(
+                status.includes("won")
+                ||
+                status.includes("lead")
+            ){
+                summary[alliance].seats++;
+            }
+
+        });
+
+
+        /* UPDATE UI */
+
+        ["UDF","LDF","NDA","Others"]
+        .forEach(key => {
+
+            let seats =
+                summary[key].seats;
+
+            let votes =
+                summary[key].votes;
+
+            let percent =
+                totalVotes
+                ?
+                (
+                    (votes / totalVotes)
+                    * 100
+                ).toFixed(1)
+                :
+                0;
+
+            animateValue(
+                key.toLowerCase(),
+                0,
+                seats,
+                800
+            );
+
+            document.getElementById(
+                key.toLowerCase()
+                + "_votes"
+            ).innerText =
+
+                votes.toLocaleString()
+
+                +
+
+                " Votes (" +
+
+                percent +
+
+                "%)";
+
+        });
+
+    }
+
+    catch(err){
+
+        console.log(err);
+
+    }
+
 }
 
 
-// AUTO REFRESH
-setInterval(loadSummary, 10000);
+/* AUTO REFRESH */
+
+setInterval(
+    loadSummary,
+    10000
+);
+
+
+/* INITIAL LOAD */
+
 loadSummary();
 
 </script>
