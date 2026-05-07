@@ -4,7 +4,7 @@ import requests
 app = Flask(__name__)
 
 # =========================
-# OPEN DATA KERALA API
+# API URL
 # =========================
 API_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 
@@ -13,8 +13,11 @@ API_URL = "https://api.opendatakerala.org/api/kla2026/results/all.json"
 # FETCH DATA
 # =========================
 def fetch_data():
+
     try:
+
         res = requests.get(API_URL, timeout=10)
+
         data = res.json()
 
         if isinstance(data, list):
@@ -26,40 +29,54 @@ def fetch_data():
         return []
 
     except Exception as e:
+
         print("API ERROR:", e)
+
         return []
 
 
 # =========================
-# PAGE ROUTES
+# HOME
 # =========================
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
+# =========================
+# DASHBOARD
+# =========================
 @app.route("/dashboard")
 def dashboard():
     return render_template("dashboard.html")
 
 
+# =========================
+# CONSTITUENCY PAGE
+# =========================
 @app.route("/constituency")
 def constituency():
     return render_template("constituency.html")
 
 
+# =========================
+# PARTYWISE PAGE
+# =========================
 @app.route("/partywise")
 def partywise():
     return render_template("partywise.html")
 
 
+# =========================
+# CANDIDATES PAGE
+# =========================
 @app.route("/candidates")
 def candidates():
     return render_template("candidates.html")
 
 
 # =========================
-# MAIN RESULTS API
+# RESULTS API
 # =========================
 @app.route("/api/results")
 def results():
@@ -70,17 +87,50 @@ def results():
 
     for r in data:
 
+        constituency = str(
+            r.get("constituency", "")
+        )
+
         output.append({
-            "Constituency": r.get("constituency", ""),
-            "ConstNo": r.get("constituency_number", ""),
-            "Candidate": r.get("candidate", ""),
-            "Party": r.get("party", ""),
-            "Alliance": r.get("alliance", ""),
-            "Votes": r.get("votes", 0),
-            "Percent": r.get("percentage", 0),
-            "Status": r.get("status", ""),
-            "Margin": r.get("margin", 0),
-            "District": r.get("district", "")
+
+            "Constituency": constituency,
+
+            "ConstNo": r.get(
+                "constituency_number", ""
+            ),
+
+            "Candidate": r.get(
+                "candidate", ""
+            ),
+
+            "Party": r.get(
+                "party", ""
+            ),
+
+            "Alliance": r.get(
+                "alliance", ""
+            ),
+
+            "Votes": int(
+                r.get("votes", 0)
+            ),
+
+            "Percent": float(
+                r.get("percentage", 0)
+            ),
+
+            "Status": r.get(
+                "status", ""
+            ),
+
+            "Margin": int(
+                r.get("margin", 0)
+            ),
+
+            "District": r.get(
+                "district", ""
+            )
+
         })
 
     return jsonify({
@@ -91,7 +141,7 @@ def results():
 
 
 # =========================
-# SINGLE CONSTITUENCY API
+# CONSTITUENCY API
 # =========================
 @app.route("/api/constituency/<name>")
 def constituency_data(name):
@@ -102,21 +152,36 @@ def constituency_data(name):
 
     for r in data:
 
-        constituency = r.get("constituency", "")
+        constituency = str(
+            r.get("constituency", "")
+        )
 
         if constituency.lower() == name.lower():
 
             filtered.append({
+
                 "Constituency": constituency,
-                "ConstNo": r.get("constituency_number", ""),
-                "Candidate": r.get("candidate", ""),
-                "Party": r.get("party", ""),
-                "Alliance": r.get("alliance", ""),
-                "Votes": r.get("votes", 0),
-                "Percent": r.get("percentage", 0),
-                "Status": r.get("status", ""),
-                "Margin": r.get("margin", 0),
-                "District": r.get("district", "")
+
+                "Candidate": r.get(
+                    "candidate", ""
+                ),
+
+                "Party": r.get(
+                    "party", ""
+                ),
+
+                "Votes": int(
+                    r.get("votes", 0)
+                ),
+
+                "Percent": float(
+                    r.get("percentage", 0)
+                ),
+
+                "Status": r.get(
+                    "status", ""
+                )
+
             })
 
     return jsonify({
@@ -138,21 +203,39 @@ def partywise_data():
 
     for r in data:
 
-        party = r.get("party", "Unknown")
+        party = str(
+            r.get("party", "Unknown")
+        )
+
+        votes = int(
+            r.get("votes", 0)
+        )
+
+        status = str(
+            r.get("status", "")
+        ).lower()
 
         if party not in parties:
+
             parties[party] = {
+
                 "Party": party,
+
                 "Seats": 0,
+
                 "Votes": 0
+
             }
 
-        status = str(r.get("status", "")).lower()
+        if (
+            "won" in status
+            or
+            "lead" in status
+        ):
 
-        if "won" in status or "lead" in status:
             parties[party]["Seats"] += 1
 
-        parties[party]["Votes"] += int(r.get("votes", 0))
+        parties[party]["Votes"] += votes
 
     return jsonify({
         "success": True,
@@ -173,11 +256,31 @@ def candidates_api():
     for r in data:
 
         candidates.append({
-            "Candidate": r.get("candidate", ""),
-            "Party": r.get("party", ""),
-            "Constituency": r.get("constituency", ""),
-            "Votes": r.get("votes", 0),
-            "Status": r.get("status", "")
+
+            "Candidate": r.get(
+                "candidate", ""
+            ),
+
+            "Party": r.get(
+                "party", ""
+            ),
+
+            "Constituency": str(
+                r.get("constituency", "")
+            ),
+
+            "Votes": int(
+                r.get("votes", 0)
+            ),
+
+            "Percent": float(
+                r.get("percentage", 0)
+            ),
+
+            "Status": r.get(
+                "status", ""
+            )
+
         })
 
     return jsonify({
