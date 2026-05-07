@@ -1,66 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Party Wise Results</title>
 
 <link rel="stylesheet" href="/static/style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-
-.container {
-    padding: 20px;
-}
-
-/* DROPDOWN */
-.select-box {
-    max-width: 300px;
-    margin-bottom: 20px;
-}
-
-/* CARDS */
-.party-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-    gap: 15px;
-}
-
-.party-card {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    transition: 0.3s;
-}
-
-.party-card.highlight {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(0,0,0,0.3);
-}
-
-.party-card.dim {
-    opacity: 0.3;
-    filter: blur(1px);
-}
-
-/* CHARTS */
-.chart-box {
-    background: white;
-    padding: 20px;
-    margin-top: 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-</style>
 
 </head>
 
 <body>
 
+<!-- NAVBAR -->
+
 <div class="navbar">
+
     <h2>Kerala Election 2026</h2>
+
     <div class="nav-links">
         <a href="/">Home</a>
         <a href="/dashboard">Dashboard</a>
@@ -68,134 +29,355 @@
         <a href="/partywise">Party Wise</a>
         <a href="/candidates">Candidates</a>
     </div>
+
 </div>
+
+<!-- CONTAINER -->
 
 <div class="container">
 
-<h2 class="page-title">Party Wise Analysis</h2>
+    <h2 class="page-title">
+        Party Wise Analysis
+    </h2>
 
-<select id="partySelect" class="select-box" onchange="updateView()">
-    <option value="">Select Party</option>
-</select>
+    <!-- SELECT -->
 
-<div id="cards" class="party-cards"></div>
+    <select
+        id="partySelect"
+        class="select-box"
+        onchange="updateView()"
+    >
 
-<div class="chart-box">
-    <canvas id="barChart"></canvas>
-</div>
+        <option value="">
+            Select Party
+        </option>
 
-<div class="chart-box">
-    <canvas id="pieChart"></canvas>
-</div>
+    </select>
+
+    <!-- CARDS -->
+
+    <div
+        id="cards"
+        class="party-cards"
+    ></div>
+
+    <!-- BAR CHART -->
+
+    <div class="chart-box">
+
+        <canvas id="barChart"></canvas>
+
+    </div>
+
+    <!-- PIE CHART -->
+
+    <div class="chart-box">
+
+        <canvas id="pieChart"></canvas>
+
+    </div>
 
 </div>
 
 <script>
 
 let data = [];
-let barChart, pieChart;
 
-// PARTY COLORS
+let barChart;
+let pieChart;
+
+
+/* PARTY COLORS */
+
 function getColor(party){
-    if(party.includes("INC")) return "#1e90ff";
-    if(party.includes("CPM") || party.includes("CPI")) return "#ff4b2b";
-    if(party.includes("BJP")) return "#f7971e";
+
+    party = (party || "").toUpperCase();
+
+    if(
+        party.includes("INC")
+    ){
+        return "#1e90ff";
+    }
+
+    if(
+        party.includes("CPM")
+        ||
+        party.includes("CPI")
+    ){
+        return "#ff4b2b";
+    }
+
+    if(
+        party.includes("BJP")
+    ){
+        return "#f7971e";
+    }
+
     return "#888";
+
 }
 
-// LOAD DATA
-async function loadData(){
-    let res = await fetch("/partywise");
-    let json = await res.json();
-    data = json.data;
 
-    populateDropdown();
-    renderCards();
-    drawCharts();
+/* LOAD DATA */
+
+async function loadData(){
+
+    try{
+
+        let res = await fetch(
+            "/api/partywise"
+        );
+
+        let json = await res.json();
+
+        data = json.data || [];
+
+        populateDropdown();
+
+        renderCards();
+
+        drawCharts();
+
+    }
+
+    catch(err){
+
+        console.log(err);
+
+    }
+
 }
 
 loadData();
 
-// DROPDOWN
-function populateDropdown(){
-    let select = document.getElementById("partySelect");
 
-    data.forEach(p=>{
-        let opt = `<option value="${p.party}">${p.party}</option>`;
+/* DROPDOWN */
+
+function populateDropdown(){
+
+    let select = document.getElementById(
+        "partySelect"
+    );
+
+    select.innerHTML = `
+        <option value="">
+            Select Party
+        </option>
+    `;
+
+    data.forEach(p => {
+
+        let opt = `
+
+        <option value="${p.Party}">
+
+            ${p.Party}
+
+        </option>
+
+        `;
+
         select.innerHTML += opt;
+
     });
+
 }
 
-// CARDS
-function renderCards(selected=""){
 
-    let container = document.getElementById("cards");
+/* PARTY CARDS */
+
+function renderCards(selected = ""){
+
+    let container = document.getElementById(
+        "cards"
+    );
+
     container.innerHTML = "";
 
-    data.forEach(p=>{
+    data.forEach(p => {
 
         let cls = "";
+
         if(selected){
-            cls = (p.party === selected) ? "highlight" : "dim";
+
+            cls =
+                (p.Party === selected)
+                ?
+                "highlight"
+                :
+                "dim";
+
         }
 
-        let color = getColor(p.party);
+        let color = getColor(
+            p.Party
+        );
 
         container.innerHTML += `
-        <div class="party-card ${cls}" style="border-top:5px solid ${color}">
-            <h3>${p.party}</h3>
-            <p>Seats: ${p.seats}</p>
-            <p>Votes: ${p.votes}</p>
+
+        <div
+            class="party-card ${cls}"
+            style="
+                border-top:5px solid ${color}
+            "
+        >
+
+            <h3>
+                ${p.Party}
+            </h3>
+
+            <p>
+                Seats:
+                ${p.Seats}
+            </p>
+
+            <p>
+                Votes:
+                ${Number(
+                    p.Votes
+                ).toLocaleString()}
+            </p>
+
         </div>
+
         `;
+
     });
+
 }
 
-// CHARTS
-function drawCharts(selected=""){
 
-    let labels = data.map(p=>p.party);
-    let votes = data.map(p=>p.votes);
+/* DRAW CHARTS */
 
-    let colors = data.map(p=>{
-        if(selected && p.party !== selected) return "rgba(200,200,200,0.3)";
-        return getColor(p.party);
-    });
+function drawCharts(selected = ""){
 
-    // BAR
-    if(barChart) barChart.destroy();
-    barChart = new Chart(document.getElementById("barChart"), {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "Votes",
-                data: votes,
-                backgroundColor: colors
-            }]
+    let labels = data.map(
+        p => p.Party
+    );
+
+    let votes = data.map(
+        p => p.Votes
+    );
+
+    let colors = data.map(p => {
+
+        if(
+            selected
+            &&
+            p.Party !== selected
+        ){
+            return "rgba(200,200,200,0.3)";
         }
+
+        return getColor(
+            p.Party
+        );
+
     });
 
-    // PIE
-    if(pieChart) pieChart.destroy();
-    pieChart = new Chart(document.getElementById("pieChart"), {
-        type: "pie",
-        data: {
-            labels: labels,
-            datasets: [{
-                data: votes,
-                backgroundColor: colors
-            }]
+
+    /* BAR */
+
+    if(barChart){
+        barChart.destroy();
+    }
+
+    barChart = new Chart(
+
+        document.getElementById(
+            "barChart"
+        ),
+
+        {
+
+            type:"bar",
+
+            data:{
+
+                labels:labels,
+
+                datasets:[{
+
+                    label:"Votes",
+
+                    data:votes,
+
+                    backgroundColor:colors
+
+                }]
+
+            },
+
+            options:{
+
+                responsive:true,
+
+                plugins:{
+
+                    legend:{
+                        display:false
+                    }
+
+                }
+
+            }
+
         }
-    });
+
+    );
+
+
+    /* PIE */
+
+    if(pieChart){
+        pieChart.destroy();
+    }
+
+    pieChart = new Chart(
+
+        document.getElementById(
+            "pieChart"
+        ),
+
+        {
+
+            type:"pie",
+
+            data:{
+
+                labels:labels,
+
+                datasets:[{
+
+                    data:votes,
+
+                    backgroundColor:colors
+
+                }]
+
+            }
+
+        }
+
+    );
+
 }
 
-// UPDATE VIEW
+
+/* UPDATE VIEW */
+
 function updateView(){
-    let selected = document.getElementById("partySelect").value;
+
+    let selected = document
+        .getElementById(
+            "partySelect"
+        )
+        .value;
 
     renderCards(selected);
+
     drawCharts(selected);
+
 }
 
 </script>
