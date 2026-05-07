@@ -4,11 +4,20 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Kerala Election 2026</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-<link rel="stylesheet" href="/static/style.css">
+<title>
+    Kerala Election 2026
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/style.css"
+>
 
 </head>
 
@@ -18,14 +27,31 @@
 
 <div class="navbar">
 
-    <h2>Kerala Election 2026</h2>
+    <h2>
+        Kerala Election 2026
+    </h2>
 
     <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/constituency">Constituency</a>
-        <a href="/partywise">Party Wise</a>
-        <a href="/candidates">Candidates</a>
+
+        <a href="/">
+            Home
+        </a>
+
+        <a href="/dashboard">
+            Dashboard
+        </a>
+
+        <a href="/constituency">
+            Constituency
+        </a>
+
+        <a href="/partywise">
+            Party Wise
+        </a>
+
+        <a href="/candidates">
+            Candidates
+        </a>
 
         <a
             href="#"
@@ -33,23 +59,84 @@
         >
             🌙
         </a>
+
     </div>
 
 </div>
+
+
+<!-- LIVE TICKER -->
+
+<div class="ticker-wrap">
+
+    <div class="ticker">
+
+        🔥 Kerala Election 2026 Live Updates • UDF leading in key seats • LDF gains in central Kerala • NDA vote share rising • Live counting continues across all constituencies • Real-time election dashboard
+
+    </div>
+
+</div>
+
+
+<!-- BACKGROUND -->
+
+<div class="bg-animation">
+
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+
+</div>
+
 
 <!-- HERO -->
 
 <div class="hero">
 
     <h1>
-        Live Election Results
+        Kerala Election 2026
     </h1>
 
     <p>
-        Real-time Kerala Assembly Election 2026 Dashboard
+        Real-time Election Dashboard & Live Analytics
+    </p>
+
+    <div class="live-badge">
+
+        <span></span>
+
+        LIVE RESULTS
+
+    </div>
+
+</div>
+
+
+<!-- MAJORITY -->
+
+<div class="majority-box">
+
+    <h3>
+        Majority Mark : 71 Seats
+    </h3>
+
+    <div class="majority-bar">
+
+        <div
+            class="majority-fill"
+            id="majorityFill"
+        ></div>
+
+    </div>
+
+    <p id="majorityText">
+        Loading Majority Status...
     </p>
 
 </div>
+
 
 <!-- LIVE SEATS -->
 
@@ -59,7 +146,9 @@
 
     <div class="seat-card udf">
 
-        <h3>UDF</h3>
+        <h3>
+            UDF
+        </h3>
 
         <h1 id="udf">
             0
@@ -71,11 +160,14 @@
 
     </div>
 
+
     <!-- LDF -->
 
     <div class="seat-card ldf">
 
-        <h3>LDF</h3>
+        <h3>
+            LDF
+        </h3>
 
         <h1 id="ldf">
             0
@@ -87,11 +179,14 @@
 
     </div>
 
+
     <!-- NDA -->
 
     <div class="seat-card nda">
 
-        <h3>NDA</h3>
+        <h3>
+            NDA
+        </h3>
 
         <h1 id="nda">
             0
@@ -103,11 +198,14 @@
 
     </div>
 
+
     <!-- OTHERS -->
 
     <div class="seat-card oth">
 
-        <h3>Others</h3>
+        <h3>
+            Others
+        </h3>
 
         <h1 id="oth">
             0
@@ -121,7 +219,8 @@
 
 </div>
 
-<!-- QUICK LINKS -->
+
+<!-- NAVIGATION GRID -->
 
 <div class="grid">
 
@@ -135,10 +234,11 @@
         </h3>
 
         <p>
-            View all constituency results
+            View overall constituency results
         </p>
 
     </a>
+
 
     <a
         href="/constituency"
@@ -150,10 +250,11 @@
         </h3>
 
         <p>
-            Detailed constituency analytics
+            Explore constituency-wise analysis
         </p>
 
     </a>
+
 
     <a
         href="/partywise"
@@ -170,6 +271,7 @@
 
     </a>
 
+
     <a
         href="/candidates"
         class="card"
@@ -180,12 +282,22 @@
         </h3>
 
         <p>
-            Search candidate information
+            Search and track candidates
         </p>
 
     </a>
 
 </div>
+
+
+<!-- AUTO REFRESH -->
+
+<div class="refresh-status">
+
+    🔄 Auto Refresh Every 10 Seconds
+
+</div>
+
 
 <!-- FOOTER -->
 
@@ -194,6 +306,7 @@
     © 2026 Kerala Election Dashboard
 
 </div>
+
 
 <script>
 
@@ -208,7 +321,7 @@ function toggleDark(){
 }
 
 
-/* ANIMATE NUMBER */
+/* ANIMATE COUNTER */
 
 function animateValue(
     id,
@@ -217,7 +330,8 @@ function animateValue(
     duration
 ){
 
-    let obj = document.getElementById(id);
+    let obj =
+        document.getElementById(id);
 
     let range = end - start;
 
@@ -230,15 +344,15 @@ function animateValue(
         }
 
         let progress = Math.min(
-            (timestamp - startTime)
-            /
-            duration,
+            (
+                timestamp - startTime
+            ) / duration,
             1
         );
 
         obj.innerText = Math.floor(
             progress * range + start
-        );
+        ).toLocaleString();
 
         if(progress < 1){
             requestAnimationFrame(step);
@@ -295,7 +409,8 @@ async function loadSummary(){
 
         let json = await res.json();
 
-        let results = json.data || [];
+        let results =
+            json.data || [];
 
         let summary = {
 
@@ -323,23 +438,29 @@ async function loadSummary(){
 
         let totalVotes = 0;
 
+
+        /* PROCESS */
+
         results.forEach(r => {
 
-            let alliance = getAlliance(
-                r.Party
-            );
+            let alliance =
+                getAlliance(
+                    r.Party
+                );
 
-            let votes = parseInt(
-                r.Votes || 0
-            );
+            let votes =
+                parseInt(
+                    r.Votes || 0
+                );
+
+            let status =
+                (
+                    r.Status || ""
+                ).toLowerCase();
 
             summary[alliance].votes += votes;
 
             totalVotes += votes;
-
-            let status = (
-                r.Status || ""
-            ).toLowerCase();
 
             if(
                 status.includes("won")
@@ -367,8 +488,10 @@ async function loadSummary(){
                 totalVotes
                 ?
                 (
-                    (votes / totalVotes)
-                    * 100
+                    (
+                        votes /
+                        totalVotes
+                    ) * 100
                 ).toFixed(1)
                 :
                 0;
@@ -377,7 +500,7 @@ async function loadSummary(){
                 key.toLowerCase(),
                 0,
                 seats,
-                800
+                1000
             );
 
             document.getElementById(
@@ -385,7 +508,8 @@ async function loadSummary(){
                 + "_votes"
             ).innerText =
 
-                votes.toLocaleString()
+                Number(votes)
+                .toLocaleString()
 
                 +
 
@@ -396,6 +520,60 @@ async function loadSummary(){
                 "%)";
 
         });
+
+
+        /* MAJORITY */
+
+        let majorityLeader = "LDF";
+
+        let maxSeats = 0;
+
+        Object.keys(summary)
+        .forEach(key => {
+
+            if(
+                summary[key].seats
+                >
+                maxSeats
+            ){
+
+                maxSeats =
+                    summary[key].seats;
+
+                majorityLeader = key;
+
+            }
+
+        });
+
+        let majorityPercent =
+            (maxSeats / 71) * 100;
+
+        if(majorityPercent > 100){
+            majorityPercent = 100;
+        }
+
+        document
+        .getElementById(
+            "majorityFill"
+        )
+        .style.width =
+            majorityPercent + "%";
+
+        document
+        .getElementById(
+            "majorityText"
+        )
+        .innerText =
+
+            majorityLeader +
+
+            " leading with " +
+
+            maxSeats +
+
+            " seats";
+
 
     }
 
