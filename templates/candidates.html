@@ -4,11 +4,20 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Candidate Search</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-<link rel="stylesheet" href="/static/style.css">
+<title>
+    Candidate Search
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/style.css"
+>
 
 </head>
 
@@ -18,23 +27,62 @@
 
 <div class="navbar">
 
-    <h2>Kerala Election 2026</h2>
+    <h2>
+        Kerala Election 2026
+    </h2>
 
     <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/constituency">Constituency</a>
-        <a href="/partywise">Party Wise</a>
-        <a href="/candidates">Candidates</a>
+
+        <a href="/">
+            Home
+        </a>
+
+        <a href="/dashboard">
+            Dashboard
+        </a>
+
+        <a href="/constituency">
+            Constituency
+        </a>
+
+        <a href="/partywise">
+            Party Wise
+        </a>
+
+        <a href="/candidates">
+            Candidates
+        </a>
+
     </div>
 
 </div>
 
-<!-- MAIN CONTAINER -->
+
+<!-- BACKGROUND -->
+
+<div class="bg-animation">
+
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+
+</div>
+
+
+<!-- CONTAINER -->
 
 <div class="container">
 
-    <h2 class="page-title">Candidate Search</h2>
+    <h1 class="page-title">
+        🔍 Candidate Search
+    </h1>
+
+    <p class="subtitle">
+        Search Kerala Election 2026 Candidates
+    </p>
+
 
     <!-- SEARCH -->
 
@@ -43,26 +91,28 @@
         <input
             type="text"
             id="searchInput"
-            placeholder="Search candidate, party, constituency..."
+            placeholder="Search candidate, party or alliance..."
         >
 
-        <button class="btn" onclick="searchCandidate()">
+        <button
+            class="btn"
+            onclick="searchCandidate()"
+        >
             Search
         </button>
 
     </div>
 
+
     <!-- RESULTS -->
 
-    <div id="results" class="results">
-
-        <div class="loader">
-            Loading candidates...
-        </div>
-
-    </div>
+    <div
+        id="results"
+        class="candidate-grid"
+    ></div>
 
 </div>
+
 
 <script>
 
@@ -75,17 +125,13 @@ async function loadData(){
 
     try{
 
-        let res = await fetch("/api/results");
+        let res = await fetch(
+            "/api/results"
+        );
 
         let json = await res.json();
 
         fullData = json.data || [];
-
-        document.getElementById("results").innerHTML = `
-            <div class="no-result">
-                Search candidates by name, party or constituency
-            </div>
-        `;
 
     }
 
@@ -93,24 +139,30 @@ async function loadData(){
 
         console.log(err);
 
-        document.getElementById("results").innerHTML = `
-            <div class="no-result">
-                Failed to load data
-            </div>
-        `;
     }
+
 }
 
 loadData();
 
 
-/* PHOTO */
+/* PARTY COLOR */
 
-function getPhoto(name){
+function getColor(alliance){
 
-    return "https://ui-avatars.com/api/?name="
-        + encodeURIComponent(name)
-        + "&background=random";
+    if(alliance === "UDF"){
+        return "#2563eb";
+    }
+
+    if(alliance === "LDF"){
+        return "#dc2626";
+    }
+
+    if(alliance === "NDA"){
+        return "#f59e0b";
+    }
+
+    return "#64748b";
 
 }
 
@@ -119,169 +171,241 @@ function getPhoto(name){
 
 function searchCandidate(){
 
-    let value = document
-        .getElementById("searchInput")
+    let value =
+
+        document
+        .getElementById(
+            "searchInput"
+        )
         .value
         .trim()
         .toLowerCase();
 
-    let container = document.getElementById("results");
+    let container =
+        document.getElementById(
+            "results"
+        );
 
     container.innerHTML = "";
+
 
     if(!value){
 
         container.innerHTML = `
-            <div class="no-result">
-                Please enter a search term
-            </div>
+
+        <div class="empty-box">
+
+            Please enter candidate name
+
+        </div>
+
         `;
 
         return;
+
     }
 
-    let filtered = fullData.filter(r =>
 
-        (r.Candidate || "")
-        .toLowerCase()
-        .includes(value)
+    let filtered =
 
-        ||
+        fullData.filter(r =>
 
-        (r.Party || "")
-        .toLowerCase()
-        .includes(value)
+            (
+                r.Candidate || ""
+            )
+            .toLowerCase()
+            .includes(value)
 
-        ||
+            ||
 
-        (r.Constituency || "")
-        .toLowerCase()
-        .includes(value)
+            (
+                r.Party || ""
+            )
+            .toLowerCase()
+            .includes(value)
 
-    );
+            ||
+
+            (
+                r.Alliance || ""
+            )
+            .toLowerCase()
+            .includes(value)
+
+        );
+
 
     if(filtered.length === 0){
 
         container.innerHTML = `
-            <div class="no-result">
-                ❌ Candidate not found
-            </div>
+
+        <div class="empty-box">
+
+            ❌ Candidate Not Found
+
+        </div>
+
         `;
 
         return;
+
     }
+
 
     filtered.forEach(r => {
 
-        let percent = r.Percent
-            ? parseFloat(r.Percent).toFixed(1)
-            : 0;
+        let alliance =
+            r.Alliance || "Others";
 
-        if(percent > 100){
-            percent = 100;
-        }
+        let color =
+            getColor(alliance);
 
-        let statusClass = "other";
+        let photo =
 
-        if((r.Status || "").toLowerCase() === "won"){
-            statusClass = "winner";
-        }
+            r.Photo
 
-        else if((r.Status || "").toLowerCase() === "leading"){
-            statusClass = "leading";
-        }
+            ?
 
-        let partyColor = "#999";
+            "https://api.opendatakerala.org/api/kla2026/images/candidates/"
 
-        if((r.Party || "").includes("INC")){
-            partyColor = "#1e90ff";
-        }
+            +
 
-        else if(
-            (r.Party || "").includes("CPM")
-            ||
-            (r.Party || "").includes("CPI")
-        ){
-            partyColor = "#ff4b2b";
-        }
+            r.Photo
 
-        else if((r.Party || "").includes("BJP")){
-            partyColor = "#f7971e";
-        }
+            :
 
-        let card = `
+            "https://ui-avatars.com/api/?name="
+
+            +
+
+            encodeURIComponent(
+                r.Candidate
+            )
+
+            +
+
+            "&background=random";
+
+
+        container.innerHTML += `
 
         <div
-            class="candidate-card ${statusClass}"
-            onclick="goTo('${r.Constituency}')"
+            class="candidate-card"
+            onclick="
+                viewConstituency(
+                    '${r.Constituency}'
+                )
+            "
         >
 
-            <div class="card-top">
+            <!-- TOP -->
+
+            <div class="candidate-top">
 
                 <img
-                    src="${getPhoto(r.Candidate)}"
-                    class="photo"
+                    src="${photo}"
+                    class="candidate-photo"
                 >
 
                 <div>
 
-                    <div class="name">
+                    <h2 class="candidate-name">
+
                         ${r.Candidate}
-                    </div>
 
-                    <div
-                        class="party"
-                        style="color:${partyColor}"
+                    </h2>
+
+                    <p
+                        class="candidate-party"
+                        style="
+                            color:${color}
+                        "
                     >
+
                         ${r.Party}
-                    </div>
 
-                    <div class="const">
-                        📍 ${r.Constituency}
-                    </div>
+                    </p>
 
                 </div>
 
             </div>
 
-            <div class="details">
+
+            <!-- DETAILS -->
+
+            <div class="candidate-details">
 
                 <div class="detail-box">
 
-                    <div class="label">
+                    <span>
+                        Alliance
+                    </span>
+
+                    <strong>
+                        ${alliance}
+                    </strong>
+
+                </div>
+
+                <div class="detail-box">
+
+                    <span>
+                        Constituency
+                    </span>
+
+                    <strong>
+                        ${r.Constituency}
+                    </strong>
+
+                </div>
+
+                <div class="detail-box">
+
+                    <span>
                         Votes
-                    </div>
+                    </span>
 
-                    <div class="value">
-                        ${r.Votes}
-                    </div>
+                    <strong>
+
+                        ${Number(
+                            r.Votes || 0
+                        ).toLocaleString()}
+
+                    </strong>
 
                 </div>
 
                 <div class="detail-box">
 
-                    <div class="label">
+                    <span>
                         Status
-                    </div>
+                    </span>
 
-                    <div class="value">
-                        ${r.Status || "N/A"}
-                    </div>
+                    <strong>
+
+                        ${r.Status || "-"}
+
+                    </strong>
 
                 </div>
 
             </div>
 
-            <div class="bar">
+
+            <!-- PROGRESS -->
+
+            <div class="vote-bar">
 
                 <div
-                    class="fill"
+                    class="vote-fill"
                     style="
-                        width:${percent}%;
-                        background:${partyColor}
+                        width:${r.Percent || 0}%;
+                        background:${color}
                     "
                 >
-                    ${percent}%
+
+                    ${r.Percent || 0}%
+
                 </div>
 
             </div>
@@ -290,20 +414,7 @@ function searchCandidate(){
 
         `;
 
-        container.innerHTML += card;
-
     });
-
-}
-
-
-/* REDIRECT */
-
-function goTo(name){
-
-    window.location.href =
-        "/constituency?name="
-        + encodeURIComponent(name);
 
 }
 
@@ -311,14 +422,34 @@ function goTo(name){
 /* ENTER SUPPORT */
 
 document
-.getElementById("searchInput")
-.addEventListener("keypress", function(e){
+.getElementById(
+    "searchInput"
+)
+.addEventListener(
+    "keypress",
+    function(e){
 
-    if(e.key === "Enter"){
-        searchCandidate();
+        if(e.key === "Enter"){
+            searchCandidate();
+        }
+
     }
+);
 
-});
+
+/* REDIRECT */
+
+function viewConstituency(name){
+
+    window.location.href =
+
+        "/constituency?name="
+
+        +
+
+        encodeURIComponent(name);
+
+}
 
 </script>
 
