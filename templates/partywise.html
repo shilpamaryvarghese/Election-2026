@@ -60,47 +60,68 @@
 </div>
 
 
+<!-- BACKGROUND -->
+
+<div class="bg-animation">
+
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+
+</div>
+
+
 <!-- CONTAINER -->
 
 <div class="container">
 
-    <h2 class="page-title">
-        Party Wise Analysis
-    </h2>
+    <h1 class="page-title">
+        🏛️ Party Wise Analysis
+    </h1>
+
+    <p class="subtitle">
+        Alliance Wise Vote & Candidate Analysis
+    </p>
 
 
     <!-- DROPDOWN -->
 
-    <select
-        id="partySelect"
-        class="select-box"
-        onchange="updateView()"
-    >
+    <div class="search-area">
 
-        <option value="">
-            All Alliances
-        </option>
+        <select
+            id="partySelect"
+            class="select-box"
+            onchange="updateView()"
+        >
 
-        <option value="UDF">
-            UDF
-        </option>
+            <option value="">
+                Select Alliance
+            </option>
 
-        <option value="LDF">
-            LDF
-        </option>
+            <option value="UDF">
+                UDF
+            </option>
 
-        <option value="NDA">
-            NDA
-        </option>
+            <option value="LDF">
+                LDF
+            </option>
 
-        <option value="Others">
-            Others
-        </option>
+            <option value="NDA">
+                NDA
+            </option>
 
-    </select>
+            <option value="Others">
+                Others
+            </option>
+
+        </select>
+
+    </div>
 
 
-    <!-- CARDS -->
+    <!-- PARTY CARDS -->
 
     <div
         id="cards"
@@ -108,20 +129,71 @@
     ></div>
 
 
-    <!-- BAR CHART -->
+    <!-- CHARTS -->
 
-    <div class="chart-box">
+    <div class="grid-2">
 
-        <canvas id="barChart"></canvas>
+        <!-- BAR -->
+
+        <div class="chart-box">
+
+            <h3>
+                Alliance Vote Share
+            </h3>
+
+            <canvas id="barChart"></canvas>
+
+        </div>
+
+
+        <!-- PIE -->
+
+        <div class="chart-box">
+
+            <h3>
+                Candidate Distribution
+            </h3>
+
+            <canvas id="pieChart"></canvas>
+
+        </div>
 
     </div>
 
 
-    <!-- PIE CHART -->
+    <!-- TABLE -->
 
-    <div class="chart-box">
+    <div class="table-box">
 
-        <canvas id="pieChart"></canvas>
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Candidate
+                    </th>
+
+                    <th>
+                        Party
+                    </th>
+
+                    <th>
+                        Alliance
+                    </th>
+
+                    <th>
+                        Votes
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody id="body"></tbody>
+
+        </table>
 
     </div>
 
@@ -134,59 +206,6 @@ let fullData = [];
 
 let barChart;
 let pieChart;
-
-
-/* ALLIANCE DETECTION */
-
-function getAlliance(p){
-
-    p = (p || "").toUpperCase();
-
-    if(
-        ["INC","IUML","RSP"]
-        .some(x => p.includes(x))
-    ){
-        return "UDF";
-    }
-
-    if(
-        ["CPM","CPI"]
-        .some(x => p.includes(x))
-    ){
-        return "LDF";
-    }
-
-    if(
-        ["BJP","BDJS"]
-        .some(x => p.includes(x))
-    ){
-        return "NDA";
-    }
-
-    return "Others";
-
-}
-
-
-/* COLORS */
-
-function getColor(alliance){
-
-    if(alliance === "UDF"){
-        return "#2563eb";
-    }
-
-    if(alliance === "LDF"){
-        return "#dc2626";
-    }
-
-    if(alliance === "NDA"){
-        return "#f59e0b";
-    }
-
-    return "#64748b";
-
-}
 
 
 /* LOAD DATA */
@@ -203,8 +222,6 @@ async function loadData(){
 
         fullData = json.data || [];
 
-        updateView();
-
     }
 
     catch(err){
@@ -218,95 +235,75 @@ async function loadData(){
 loadData();
 
 
-/* UPDATE PAGE */
+/* COLORS */
+
+function getColor(alliance){
+
+    alliance =
+        (alliance || "")
+        .toUpperCase();
+
+    if(alliance.includes("UDF")){
+        return "#2563eb";
+    }
+
+    if(alliance.includes("LDF")){
+        return "#dc2626";
+    }
+
+    if(alliance.includes("NDA")){
+        return "#f59e0b";
+    }
+
+    return "#64748b";
+
+}
+
+
+/* UPDATE */
 
 function updateView(){
 
-    let selectedAlliance =
+    let selected =
+
         document
         .getElementById(
             "partySelect"
         )
         .value;
 
-    let grouped = {};
+
+    if(!selected){
+        return;
+    }
 
 
-    /* GROUP DATA */
+    let filtered =
 
-    fullData.forEach(r => {
+        fullData.filter(r =>
 
-        let alliance =
-            getAlliance(
-                r.Party
-            );
-
-        if(
-            selectedAlliance
-            &&
-            alliance !== selectedAlliance
-        ){
-            return;
-        }
-
-        if(!grouped[alliance]){
-
-            grouped[alliance] = {
-
-                alliance:alliance,
-
-                seats:0,
-
-                votes:0
-
-            };
-
-        }
-
-        grouped[alliance].votes +=
-            parseInt(
-                r.Votes || 0
-            );
-
-        let status =
             (
-                r.Status || ""
-            ).toLowerCase();
+                r.alliance || ""
+            )
+            .toUpperCase()
+            ===
+            selected.toUpperCase()
 
-        if(
-            status.includes("won")
-            ||
-            status.includes("lead")
-        ){
-
-            grouped[alliance].seats++;
-
-        }
-
-    });
+        );
 
 
-    /* CONVERT */
+    renderCards(filtered,selected);
 
-    let data =
-        Object.values(grouped);
+    renderTable(filtered);
 
-
-    /* CARDS */
-
-    renderCards(data);
-
-
-    /* CHARTS */
-
-    drawCharts(data);
+    drawCharts(filtered,selected);
 
 }
 
 
-/* CARDS */
+/* PARTY CARDS */
 
-function renderCards(data){
+function renderCards(data,selected){
 
     let container =
         document.getElementById(
@@ -316,47 +313,131 @@ function renderCards(data){
     container.innerHTML = "";
 
 
-    data.forEach(d => {
+    let totalVotes = 0;
+
+    data.forEach(r => {
+
+        totalVotes += parseInt(
+            r.votes || 0
+        );
+
+    });
+
+
+    let color =
+        getColor(selected);
+
+
+    container.innerHTML = `
+
+    <div
+        class="party-card highlight-card"
+        style="
+            border-top:6px solid ${color};
+        "
+    >
+
+        <h2>
+
+            ${selected}
+
+        </h2>
+
+        <h1>
+
+            ${data.length}
+
+        </h1>
+
+        <p>
+            Candidates
+        </p>
+
+        <br>
+
+        <h2>
+
+            ${Number(
+                totalVotes
+            ).toLocaleString()}
+
+        </h2>
+
+        <p>
+            Total Votes
+        </p>
+
+    </div>
+
+    `;
+
+}
+
+
+/* TABLE */
+
+function renderTable(data){
+
+    let tbody =
+        document.getElementById(
+            "body"
+        );
+
+    tbody.innerHTML = "";
+
+
+    data.forEach(r => {
 
         let color =
             getColor(
-                d.alliance
+                r.alliance
             );
 
-        container.innerHTML += `
 
-        <div
-            class="party-card"
-            style="
-                border-top:5px solid ${color}
-            "
-        >
+        tbody.innerHTML += `
 
-            <h2>
-                ${d.alliance}
-            </h2>
+        <tr>
 
-            <h1>
-                ${d.seats}
-            </h1>
+            <td>
 
-            <p>
-                Seats
-            </p>
+                <strong>
 
-            <br>
+                    ${r.name}
 
-            <h3>
+                </strong>
+
+            </td>
+
+            <td>
+
+                ${r.party}
+
+            </td>
+
+            <td>
+
+                <span
+                    style="
+                        color:${color};
+                        font-weight:700;
+                    "
+                >
+
+                    ${r.alliance}
+
+                </span>
+
+            </td>
+
+            <td>
+
                 ${Number(
-                    d.votes
+                    r.votes || 0
                 ).toLocaleString()}
-            </h3>
 
-            <p>
-                Votes
-            </p>
+            </td>
 
-        </div>
+        </tr>
 
         `;
 
@@ -365,25 +446,25 @@ function renderCards(data){
 }
 
 
-/* DRAW CHARTS */
+/* CHARTS */
 
-function drawCharts(data){
+function drawCharts(data,selected){
 
     let labels =
         data.map(
-            d => d.alliance
+            r => r.name
         );
 
     let votes =
         data.map(
-            d => d.votes
+            r => parseInt(
+                r.votes || 0
+            )
         );
 
     let colors =
         data.map(
-            d => getColor(
-                d.alliance
-            )
+            () => getColor(selected)
         );
 
 
@@ -409,7 +490,7 @@ function drawCharts(data){
 
                 datasets:[{
 
-                    label:"Votes",
+                    label:selected,
 
                     data:votes,
 
