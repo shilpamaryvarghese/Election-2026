@@ -4,11 +4,20 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Party Wise Results</title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-<link rel="stylesheet" href="/static/style.css">
+<title>
+    Party Wise Results
+</title>
+
+<link
+    rel="stylesheet"
+    href="/static/style.css"
+>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -20,17 +29,36 @@
 
 <div class="navbar">
 
-    <h2>Kerala Election 2026</h2>
+    <h2>
+        Kerala Election 2026
+    </h2>
 
     <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/constituency">Constituency</a>
-        <a href="/partywise">Party Wise</a>
-        <a href="/candidates">Candidates</a>
+
+        <a href="/">
+            Home
+        </a>
+
+        <a href="/dashboard">
+            Dashboard
+        </a>
+
+        <a href="/constituency">
+            Constituency
+        </a>
+
+        <a href="/partywise">
+            Party Wise
+        </a>
+
+        <a href="/candidates">
+            Candidates
+        </a>
+
     </div>
 
 </div>
+
 
 <!-- CONTAINER -->
 
@@ -40,7 +68,8 @@
         Party Wise Analysis
     </h2>
 
-    <!-- SELECT -->
+
+    <!-- DROPDOWN -->
 
     <select
         id="partySelect"
@@ -49,10 +78,27 @@
     >
 
         <option value="">
-            Select Party
+            All Alliances
+        </option>
+
+        <option value="UDF">
+            UDF
+        </option>
+
+        <option value="LDF">
+            LDF
+        </option>
+
+        <option value="NDA">
+            NDA
+        </option>
+
+        <option value="Others">
+            Others
         </option>
 
     </select>
+
 
     <!-- CARDS -->
 
@@ -61,6 +107,7 @@
         class="party-cards"
     ></div>
 
+
     <!-- BAR CHART -->
 
     <div class="chart-box">
@@ -68,6 +115,7 @@
         <canvas id="barChart"></canvas>
 
     </div>
+
 
     <!-- PIE CHART -->
 
@@ -79,41 +127,64 @@
 
 </div>
 
+
 <script>
 
-let data = [];
+let fullData = [];
 
 let barChart;
 let pieChart;
 
 
-/* PARTY COLORS */
+/* ALLIANCE DETECTION */
 
-function getColor(party){
+function getAlliance(p){
 
-    party = (party || "").toUpperCase();
+    p = (p || "").toUpperCase();
 
     if(
-        party.includes("INC")
+        ["INC","IUML","RSP"]
+        .some(x => p.includes(x))
     ){
-        return "#1e90ff";
+        return "UDF";
     }
 
     if(
-        party.includes("CPM")
-        ||
-        party.includes("CPI")
+        ["CPM","CPI"]
+        .some(x => p.includes(x))
     ){
-        return "#ff4b2b";
+        return "LDF";
     }
 
     if(
-        party.includes("BJP")
+        ["BJP","BDJS"]
+        .some(x => p.includes(x))
     ){
-        return "#f7971e";
+        return "NDA";
     }
 
-    return "#888";
+    return "Others";
+
+}
+
+
+/* COLORS */
+
+function getColor(alliance){
+
+    if(alliance === "UDF"){
+        return "#2563eb";
+    }
+
+    if(alliance === "LDF"){
+        return "#dc2626";
+    }
+
+    if(alliance === "NDA"){
+        return "#f59e0b";
+    }
+
+    return "#64748b";
 
 }
 
@@ -125,18 +196,14 @@ async function loadData(){
     try{
 
         let res = await fetch(
-            "/api/partywise"
+            "/api/results"
         );
 
         let json = await res.json();
 
-        data = json.data || [];
+        fullData = json.data || [];
 
-        populateDropdown();
-
-        renderCards();
-
-        drawCharts();
+        updateView();
 
     }
 
@@ -151,91 +218,142 @@ async function loadData(){
 loadData();
 
 
-/* DROPDOWN */
+/* UPDATE PAGE */
 
-function populateDropdown(){
+function updateView(){
 
-    let select = document.getElementById(
-        "partySelect"
-    );
+    let selectedAlliance =
+        document
+        .getElementById(
+            "partySelect"
+        )
+        .value;
 
-    select.innerHTML = `
-        <option value="">
-            Select Party
-        </option>
-    `;
+    let grouped = {};
 
-    data.forEach(p => {
 
-        let opt = `
+    /* GROUP DATA */
 
-        <option value="${p.Party}">
+    fullData.forEach(r => {
 
-            ${p.Party}
+        let alliance =
+            getAlliance(
+                r.Party
+            );
 
-        </option>
+        if(
+            selectedAlliance
+            &&
+            alliance !== selectedAlliance
+        ){
+            return;
+        }
 
-        `;
+        if(!grouped[alliance]){
 
-        select.innerHTML += opt;
+            grouped[alliance] = {
+
+                alliance:alliance,
+
+                seats:0,
+
+                votes:0
+
+            };
+
+        }
+
+        grouped[alliance].votes +=
+            parseInt(
+                r.Votes || 0
+            );
+
+        let status =
+            (
+                r.Status || ""
+            ).toLowerCase();
+
+        if(
+            status.includes("won")
+            ||
+            status.includes("lead")
+        ){
+
+            grouped[alliance].seats++;
+
+        }
 
     });
+
+
+    /* CONVERT */
+
+    let data =
+        Object.values(grouped);
+
+
+    /* CARDS */
+
+    renderCards(data);
+
+
+    /* CHARTS */
+
+    drawCharts(data);
 
 }
 
 
-/* PARTY CARDS */
+/* CARDS */
 
-function renderCards(selected = ""){
+function renderCards(data){
 
-    let container = document.getElementById(
-        "cards"
-    );
+    let container =
+        document.getElementById(
+            "cards"
+        );
 
     container.innerHTML = "";
 
-    data.forEach(p => {
 
-        let cls = "";
+    data.forEach(d => {
 
-        if(selected){
-
-            cls =
-                (p.Party === selected)
-                ?
-                "highlight"
-                :
-                "dim";
-
-        }
-
-        let color = getColor(
-            p.Party
-        );
+        let color =
+            getColor(
+                d.alliance
+            );
 
         container.innerHTML += `
 
         <div
-            class="party-card ${cls}"
+            class="party-card"
             style="
                 border-top:5px solid ${color}
             "
         >
 
+            <h2>
+                ${d.alliance}
+            </h2>
+
+            <h1>
+                ${d.seats}
+            </h1>
+
+            <p>
+                Seats
+            </p>
+
+            <br>
+
             <h3>
-                ${p.Party}
+                ${Number(
+                    d.votes
+                ).toLocaleString()}
             </h3>
 
             <p>
-                Seats:
-                ${p.Seats}
-            </p>
-
-            <p>
-                Votes:
-                ${Number(
-                    p.Votes
-                ).toLocaleString()}
+                Votes
             </p>
 
         </div>
@@ -249,31 +367,24 @@ function renderCards(selected = ""){
 
 /* DRAW CHARTS */
 
-function drawCharts(selected = ""){
+function drawCharts(data){
 
-    let labels = data.map(
-        p => p.Party
-    );
-
-    let votes = data.map(
-        p => p.Votes
-    );
-
-    let colors = data.map(p => {
-
-        if(
-            selected
-            &&
-            p.Party !== selected
-        ){
-            return "rgba(200,200,200,0.3)";
-        }
-
-        return getColor(
-            p.Party
+    let labels =
+        data.map(
+            d => d.alliance
         );
 
-    });
+    let votes =
+        data.map(
+            d => d.votes
+        );
+
+    let colors =
+        data.map(
+            d => getColor(
+                d.alliance
+            )
+        );
 
 
     /* BAR */
@@ -302,7 +413,9 @@ function drawCharts(selected = ""){
 
                     data:votes,
 
-                    backgroundColor:colors
+                    backgroundColor:colors,
+
+                    borderRadius:12
 
                 }]
 
@@ -315,7 +428,25 @@ function drawCharts(selected = ""){
                 plugins:{
 
                     legend:{
-                        display:false
+                        labels:{
+                            color:"white"
+                        }
+                    }
+
+                },
+
+                scales:{
+
+                    y:{
+                        ticks:{
+                            color:"white"
+                        }
+                    },
+
+                    x:{
+                        ticks:{
+                            color:"white"
+                        }
                     }
 
                 }
@@ -355,28 +486,25 @@ function drawCharts(selected = ""){
 
                 }]
 
+            },
+
+            options:{
+
+                plugins:{
+
+                    legend:{
+                        labels:{
+                            color:"white"
+                        }
+                    }
+
+                }
+
             }
 
         }
 
     );
-
-}
-
-
-/* UPDATE VIEW */
-
-function updateView(){
-
-    let selected = document
-        .getElementById(
-            "partySelect"
-        )
-        .value;
-
-    renderCards(selected);
-
-    drawCharts(selected);
 
 }
 
