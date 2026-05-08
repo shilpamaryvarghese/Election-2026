@@ -1,664 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
-<title>
-    Constituency Results
-</title>
-
-<link
-    rel="stylesheet"
-    href="/static/style.css"
->
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constituency Results</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
-
 <body>
 
 <!-- NAVBAR -->
-
 <div class="navbar">
-
-    <h2>
-        Kerala Election 2026
-    </h2>
-
+    <h2>Kerala Election 2026</h2>
     <div class="nav-links">
-
-        <a href="/">
-            Home
-        </a>
-
-        <a href="/dashboard">
-            Dashboard
-        </a>
-
-        <a href="/constituency">
-            Constituency
-        </a>
-
-        <a href="/partywise">
-            Party Wise
-        </a>
-
-        <a href="/candidates">
-            Candidates
-        </a>
-
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
     </div>
-
 </div>
 
+<!-- BACKGROUND -->
+<div class="bg-animation">
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
 
 <!-- CONTAINER -->
-
 <div class="container">
-
-    <h2 class="page-title">
-        Constituency Results
-    </h2>
-
+    <h2 class="page-title">📍 Constituency Results</h2>
+    <p class="subtitle">Deep dive into constituency-wise performance</p>
 
     <!-- DROPDOWN -->
-
-    <select
-        id="dropdown"
-        class="select-box"
-    >
-
-        <option value="">
-            Select Constituency
-        </option>
-
-    </select>
-
-
-    <!-- WINNER -->
-
-    <div
-        class="winner-box"
-        id="winnerBox"
-        style="display:none;"
-    ></div>
-
-
-    <!-- GRID -->
-
-    <div class="grid-2">
-
-        <!-- LEFT -->
-
-        <div>
-
-            <!-- BAR CHART -->
-
-            <div class="chart-box">
-
-                <canvas id="barChart"></canvas>
-
-            </div>
-
-
-            <!-- TABLE -->
-
-            <div class="table-box">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Candidate
-                            </th>
-
-                            <th>
-                                Party
-                            </th>
-
-                            <th>
-                                Total Votes
-                            </th>
-
-                            <th>
-                                %
-                            </th>
-
-                            <th>
-                                Alliance
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-                    <tbody id="body"></tbody>
-
-                </table>
-
-            </div>
-
-        </div>
-
-
-        <!-- RIGHT -->
-
-        <div>
-
-            <!-- PIE -->
-
-            <div class="chart-box">
-
-                <h3>
-                    Vote Share
-                </h3>
-
-                <canvas id="pieChart"></canvas>
-
-            </div>
-
-        </div>
-
+    <div class="search-area">
+        <select id="dropdown" class="select-box">
+            <option value="">Select Constituency</option>
+        </select>
     </div>
 
+    <!-- WINNER -->
+    <div class="winner-box" id="winnerBox" style="display:none;"></div>
+
+    <!-- GRID -->
+    <div class="grid-2">
+        <!-- LEFT -->
+        <div>
+            <!-- BAR CHART -->
+            <div class="chart-box">
+                <canvas id="barChart"></canvas>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-box table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Candidate</th>
+                            <th>Party</th>
+                            <th>Total Votes</th>
+                            <th>%</th>
+                            <th>Alliance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div>
+            <!-- PIE -->
+            <div class="chart-box">
+                <h3>Vote Share</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
-
 <script>
-
 let fullData = [];
-
 let barChart;
 let pieChart;
 
-
-/* ALLIANCE */
-
-function getAlliance(p){
-
-    p = (p || "").toUpperCase();
-
-    if(
-        ["INC","IUML","RSP"]
-        .some(x => p.includes(x))
-    ){
-        return "UDF";
-    }
-
-    if(
-        ["CPM","CPI"]
-        .some(x => p.includes(x))
-    ){
-        return "LDF";
-    }
-
-    if(
-        ["BJP","BDJS"]
-        .some(x => p.includes(x))
-    ){
-        return "NDA";
-    }
-
-    return "Others";
-
+/* ALLIANCE COLORS */
+function getColor(alliance){
+    alliance = (alliance || "").toUpperCase();
+    if(alliance.includes("UDF")) return "#3b82f6";
+    if(alliance.includes("LDF")) return "#ef4444";
+    if(alliance.includes("NDA")) return "#f59e0b";
+    return "#94a3b8";
 }
-
-
-/* COLORS */
-
-function getColor(p){
-
-    let a = getAlliance(p);
-
-    if(a === "UDF"){
-        return "#2563eb";
-    }
-
-    if(a === "LDF"){
-        return "#dc2626";
-    }
-
-    if(a === "NDA"){
-        return "#f59e0b";
-    }
-
-    return "#64748b";
-
-}
-
 
 /* LOAD ALL DATA */
-
 async function loadData(){
-
     try{
-
-        let res = await fetch(
-            "/api/results"
-        );
-
+        let res = await fetch("/api/results");
         let json = await res.json();
-
         fullData = json.data || [];
-
         populateDropdown();
-
-    }
-
-    catch(err){
-
+    } catch(err){
         console.log(err);
-
     }
-
 }
 
-loadData();
-
-
 /* POPULATE DROPDOWN */
-
 function populateDropdown(){
-
-    let dropdown =
-        document.getElementById(
-            "dropdown"
-        );
-
-    let constituencies = [
-
-        ...new Set(
-
-            fullData.map(
-                d => d.Constituency
-            )
-
-        )
-
-    ];
-
+    let dropdown = document.getElementById("dropdown");
+    let constituencies = [...new Set(fullData.map(d => d.constituency))];
     constituencies.sort();
 
     constituencies.forEach(name => {
-
-        dropdown.innerHTML += `
-
-        <option value="${name}">
-            ${name}
-        </option>
-
-        `;
-
+        dropdown.innerHTML += `<option value="${name}">${name}</option>`;
     });
-
 }
 
-
 /* LOAD CONSTITUENCY */
-
 function loadConstituency(name){
-
-    let rows =
-        fullData.filter(
-            r => r.Constituency === name
-        );
-
-    let tbody =
-        document.getElementById(
-            "body"
-        );
-
+    let rows = fullData.filter(r => r.constituency === name);
+    let tbody = document.getElementById("body");
     tbody.innerHTML = "";
 
     if(rows.length === 0){
+        document.getElementById("winnerBox").style.display = "none";
         return;
     }
 
-
     /* TOTAL */
-
     let totalVotes = 0;
-
     rows.forEach(r => {
-
-        totalVotes += parseInt(
-            r.Votes || 0
-        );
-
+        totalVotes += parseInt(r.votes || 0);
     });
 
+    /* WINNER/LEADER */
+    let winner = rows[0]; // Assuming data is sorted by votes, which it is
 
-    /* WINNER */
-
-    let winner = rows.reduce(
-
-        (a,b) =>
-
-        parseInt(a.Votes || 0)
-        >
-        parseInt(b.Votes || 0)
-
-        ? a : b
-
-    );
-
-
-    document
-    .getElementById(
-        "winnerBox"
-    )
-    .style.display = "block";
-
-
-    document
-    .getElementById(
-        "winnerBox"
-    )
-    .innerHTML =
-
-        "🏆 Winner : "
-
-        +
-
-        winner.Candidate
-
-        +
-
-        " ("
-
-        +
-
-        winner.Party
-
-        +
-
-        ") - "
-
-        +
-
-        Number(
-            winner.Votes
-        ).toLocaleString()
-
-        +
-
-        " votes";
-
+    let statusText = winner.status === "Won" ? "🏆 Winner" : "📈 Leading";
+    
+    document.getElementById("winnerBox").style.display = "block";
+    document.getElementById("winnerBox").innerHTML = 
+        `${statusText}: ${winner.candidate} (${winner.party}) - ${Number(winner.votes).toLocaleString()} votes`;
 
     /* TABLE */
-
     rows.forEach(r => {
-
-        let votes =
-            parseInt(
-                r.Votes || 0
-            );
-
-        let percent =
-            totalVotes
-            ?
-            (
-                (
-                    votes /
-                    totalVotes
-                ) * 100
-            ).toFixed(1)
-            :
-            0;
-
-        let alliance =
-            getAlliance(
-                r.Party
-            );
-
-        let cls =
-            r.Candidate === winner.Candidate
-            ?
-            "winner-row"
-            :
-            "";
+        let votes = parseInt(r.votes || 0);
+        let percent = totalVotes ? ((votes / totalVotes) * 100).toFixed(1) : 0;
+        let alliance = r.alliance || "-";
+        let cls = (r.candidate === winner.candidate) ? "winner-row" : "";
+        let color = getColor(alliance);
 
         tbody.innerHTML += `
-
         <tr class="${cls}">
-
-            <td>
-                ${r.Candidate}
-            </td>
-
-            <td>
-                ${r.Party}
-            </td>
-
-            <td>
-                ${Number(votes)
-                .toLocaleString()}
-            </td>
-
-            <td>
-                ${percent}%
-            </td>
-
-            <td>
-                ${alliance}
-            </td>
-
+            <td><strong>${r.candidate}</strong></td>
+            <td>${r.party}</td>
+            <td>${Number(votes).toLocaleString()}</td>
+            <td>${percent}%</td>
+            <td><span style="color:${color}; font-weight:700;">${alliance}</span></td>
         </tr>
-
         `;
-
     });
 
-
     /* CHARTS */
-
-    drawCharts(rows,totalVotes);
-
+    drawCharts(rows, totalVotes);
 }
-
 
 /* DRAW CHARTS */
-
-function drawCharts(rows,totalVotes){
-
-    let labels =
-        rows.map(
-            r => r.Candidate
-        );
-
-    let votes =
-        rows.map(
-            r => parseInt(
-                r.Votes || 0
-            )
-        );
-
-    let colors =
-        rows.map(
-            r => getColor(
-                r.Party
-            )
-        );
-
+function drawCharts(rows, totalVotes){
+    let labels = rows.map(r => r.candidate);
+    let votes = rows.map(r => parseInt(r.votes || 0));
+    let colors = rows.map(r => getColor(r.alliance));
 
     /* BAR */
-
-    if(barChart){
-        barChart.destroy();
-    }
-
-    barChart = new Chart(
-
-        document.getElementById(
-            "barChart"
-        ),
-
-        {
-
-            type:"bar",
-
-            data:{
-
-                labels:labels,
-
-                datasets:[{
-
-                    label:"Votes",
-
-                    data:votes,
-
-                    backgroundColor:colors,
-
-                    borderRadius:12
-
-                }]
-
-            },
-
-            options:{
-
-                responsive:true,
-
-                plugins:{
-
-                    legend:{
-                        labels:{
-                            color:"white"
-                        }
-                    },
-
-                    datalabels:{
-
-                        color:"white",
-
-                        anchor:"end",
-
-                        align:"top",
-
-                        formatter:(v)=>
-
-                        (
-                            (
-                                v /
-                                totalVotes
-                            ) * 100
-                        ).toFixed(1)
-
-                        + "%"
-
-                    }
-
-                },
-
-                scales:{
-
-                    y:{
-                        ticks:{
-                            color:"white"
-                        }
-                    },
-
-                    x:{
-                        ticks:{
-                            color:"white"
-                        }
-                    }
-
+    if(barChart) barChart.destroy();
+    barChart = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Votes",
+                data: votes,
+                backgroundColor: colors,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { labels: { color: "#e2e8f0" } },
+                datalabels: {
+                    color: "white",
+                    anchor: "end",
+                    align: "top",
+                    formatter: (v) => ((v / totalVotes) * 100).toFixed(1) + "%"
                 }
-
             },
-
-            plugins:[ChartDataLabels]
-
-        }
-
-    );
-
+            scales: {
+                y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
+                x: { ticks: { color: "#94a3b8" }, grid: { display: false } }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
 
     /* PIE */
-
-    if(pieChart){
-        pieChart.destroy();
-    }
-
-    pieChart = new Chart(
-
-        document.getElementById(
-            "pieChart"
-        ),
-
-        {
-
-            type:"pie",
-
-            data:{
-
-                labels:labels,
-
-                datasets:[{
-
-                    data:votes,
-
-                    backgroundColor:colors
-
-                }]
-
+    if(pieChart) pieChart.destroy();
+    pieChart = new Chart(document.getElementById("pieChart"), {
+        type: "doughnut",
+        data: {
+            labels: labels,
+            datasets: [{
+                data: votes,
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { position: "bottom", labels: { color: "#e2e8f0", padding: 20 } }
             },
-
-            options:{
-
-                plugins:{
-
-                    legend:{
-                        labels:{
-                            color:"white"
-                        }
-                    }
-
-                }
-
-            }
-
+            cutout: '70%'
         }
-
-    );
-
+    });
 }
 
-
 /* EVENT */
-
-document
-.getElementById(
-    "dropdown"
-)
-.addEventListener(
-    "change",
-    e => {
-
-        if(e.target.value){
-
-            loadConstituency(
-                e.target.value
-            );
-
-        }
-
+document.getElementById("dropdown").addEventListener("change", e => {
+    if(e.target.value){
+        loadConstituency(e.target.value);
     }
-);
+});
 
+loadData();
 </script>
 
 </body>

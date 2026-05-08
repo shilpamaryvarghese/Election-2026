@@ -1,417 +1,150 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
-<title>
-    Candidate Search
-</title>
-
-<link
-    rel="stylesheet"
-    href="/static/style.css"
->
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Search</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
 <!-- NAVBAR -->
-
 <div class="navbar">
-
-    <h2>
-        Kerala Election 2026
-    </h2>
-
+    <h2>Kerala Election 2026</h2>
     <div class="nav-links">
-
-        <a href="/">
-            Home
-        </a>
-
-        <a href="/dashboard">
-            Dashboard
-        </a>
-
-        <a href="/constituency">
-            Constituency
-        </a>
-
-        <a href="/partywise">
-            Party Wise
-        </a>
-
-        <a href="/candidates">
-            Candidates
-        </a>
-
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
     </div>
-
 </div>
-
 
 <!-- BACKGROUND -->
-
 <div class="bg-animation">
-
     <span></span>
     <span></span>
     <span></span>
-    <span></span>
-    <span></span>
-
 </div>
-
 
 <!-- CONTAINER -->
-
 <div class="container">
-
-    <h1 class="page-title">
-        🔍 Candidate Search
-    </h1>
-
-    <p class="subtitle">
-        Search Kerala Election 2026 Candidates
-    </p>
-
+    <h1 class="page-title">🔍 Candidate Search</h1>
+    <p class="subtitle">Search Kerala Election 2026 Candidates</p>
 
     <!-- SEARCH -->
-
     <div class="search-area">
-
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Search candidate name..."
-        >
-
-        <button
-            class="btn"
-            onclick="searchCandidate()"
-        >
-            Search
-        </button>
-
+        <input type="text" id="searchInput" placeholder="Search candidate name, constituency, or party...">
+        <button class="btn" onclick="searchCandidate()">Search</button>
     </div>
 
-
     <!-- RESULTS -->
-
-    <div
-        id="results"
-        class="candidate-grid"
-    ></div>
-
+    <div id="results" class="candidate-grid"></div>
 </div>
 
-
 <script>
-
 let fullData = [];
 
+/* ALLIANCE COLOR */
+function getColor(alliance){
+    alliance = (alliance || "").toUpperCase();
+    if(alliance.includes("UDF")) return "#3b82f6";
+    if(alliance.includes("LDF")) return "#ef4444";
+    if(alliance.includes("NDA")) return "#f59e0b";
+    return "#94a3b8";
+}
 
 /* LOAD DATA */
-
 async function loadData(){
-
     try{
-
-        let res = await fetch(
-            "/api/results"
-        );
-
+        let res = await fetch("/api/results");
         let json = await res.json();
-
         fullData = json.data || [];
-
-    }
-
-    catch(err){
-
+        // Optionally show all or a subset initially
+        searchCandidate(""); 
+    } catch(err){
         console.log(err);
-
     }
-
 }
-
-loadData();
-
-
-/* ALLIANCE COLOR */
-
-function getColor(alliance){
-
-    alliance =
-        (alliance || "")
-        .toUpperCase();
-
-    if(alliance.includes("UDF")){
-        return "#2563eb";
-    }
-
-    if(alliance.includes("LDF")){
-        return "#dc2626";
-    }
-
-    if(alliance.includes("NDA")){
-        return "#f59e0b";
-    }
-
-    return "#64748b";
-
-}
-
 
 /* SEARCH */
-
-function searchCandidate(){
-
-    let value =
-
-        document
-        .getElementById(
-            "searchInput"
-        )
-        .value
-        .trim()
-        .toLowerCase();
-
-    let container =
-        document.getElementById(
-            "results"
-        );
-
+function searchCandidate(query = null){
+    let value = query !== null ? query : document.getElementById("searchInput").value.trim().toLowerCase();
+    let container = document.getElementById("results");
     container.innerHTML = "";
 
-
-    if(!value){
-
-        container.innerHTML = `
-
-        <div class="empty-box">
-
-            Please enter candidate name
-
-        </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    let filtered =
-
-        fullData.filter(r =>
-
-            (
-                r.name || ""
-            )
-            .toLowerCase()
-            .includes(value)
-
-        );
-
+    // Show top 30 if no search query to avoid massive DOM load on first paint
+    let filtered = value === "" ? fullData.slice(0, 30) : fullData.filter(r => 
+        (r.candidate || "").toLowerCase().includes(value) ||
+        (r.constituency || "").toLowerCase().includes(value) ||
+        (r.party || "").toLowerCase().includes(value)
+    );
 
     if(filtered.length === 0){
-
-        container.innerHTML = `
-
-        <div class="empty-box">
-
-            ❌ Candidate Not Found
-
-        </div>
-
-        `;
-
+        container.innerHTML = `<div class="empty-box" style="grid-column: 1 / -1;">❌ No Candidates Found</div>`;
         return;
-
     }
-
 
     filtered.forEach(r => {
+        let color = getColor(r.alliance);
+        let photo = r.photo && r.photo !== "undefined.jpg" && r.photo !== ""
+            ? "https://api.opendatakerala.org/api/kla2026/images/candidates/" + r.photo
+            : "https://ui-avatars.com/api/?name=" + encodeURIComponent(r.candidate) + "&background=random";
 
-        let color =
-            getColor(
-                r.alliance
-            );
-
-        let photo =
-
-            r.photo
-
-            ?
-
-            "https://api.opendatakerala.org/api/kla2026/images/candidates/"
-
-            +
-
-            r.photo
-
-            :
-
-            "https://ui-avatars.com/api/?name="
-
-            +
-
-            encodeURIComponent(
-                r.name
-            )
-
-            +
-
-            "&background=random";
-
+        let statusBadge = r.status ? `<div style="position:absolute; top:20px; right:20px; background:rgba(34,197,94,0.2); color:#4ade80; padding:6px 12px; border-radius:20px; font-weight:700; font-size:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); border:1px solid rgba(34,197,94,0.3); z-index:10;">${r.status}</div>` : "";
 
         container.innerHTML += `
-
-        <div class="candidate-card">
-
+        <div class="candidate-card" style="position:relative;">
+            ${statusBadge}
             <!-- TOP -->
-
             <div class="candidate-top">
-
-                <img
-                    src="${photo}"
-                    class="candidate-photo"
-                >
-
+                <img src="${photo}" class="candidate-photo" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(r.candidate)}&background=random'">
                 <div>
-
-                    <h2 class="candidate-name">
-
-                        ${r.name}
-
-                    </h2>
-
-                    <p class="candidate-ml">
-
-                        ${r.name_ml || ""}
-
-                    </p>
-
+                    <h2 class="candidate-name">${r.candidate}</h2>
+                    <p class="candidate-ml">${r.name_ml || ""}</p>
                 </div>
-
             </div>
-
 
             <!-- PARTY -->
-
-            <div
-                class="candidate-party-box"
-                style="
-                    background:${color};
-                "
-            >
-
+            <div class="candidate-party-box" style="background:${color}; color:white;">
                 ${r.alliance}
-
             </div>
-
 
             <!-- DETAILS -->
-
             <div class="candidate-details">
-
                 <div class="detail-box">
-
-                    <span>
-                        Alliance
-                    </span>
-
-                    <strong>
-
-                        ${r.alliance}
-
-                    </strong>
-
+                    <span>Constituency</span>
+                    <strong>${r.constituency}</strong>
                 </div>
-
                 <div class="detail-box">
-
-                    <span>
-                        Party
-                    </span>
-
-                    <strong>
-
-                        ${r.party}
-
-                    </strong>
-
+                    <span>Party</span>
+                    <strong>${r.party}</strong>
                 </div>
-
                 <div class="detail-box">
-
-                    <span>
-                        Votes
-                    </span>
-
-                    <strong>
-
-                        ${Number(
-                            r.votes || 0
-                        ).toLocaleString()}
-
-                    </strong>
-
+                    <span>Votes</span>
+                    <strong>${Number(r.votes || 0).toLocaleString()}</strong>
                 </div>
-
                 <div class="detail-box">
-
-                    <span>
-                        Sitting
-                    </span>
-
-                    <strong>
-
-                        ${r.sitting || "-"}
-
-                    </strong>
-
+                    <span>Sitting</span>
+                    <strong>${r.sitting || "-"}</strong>
                 </div>
-
             </div>
-
         </div>
-
         `;
-
     });
-
+    
+    if (value === "" && fullData.length > 30) {
+        container.innerHTML += `<div class="empty-box" style="grid-column: 1 / -1; font-size: 14px;">Showing top 30. Please search to find specific candidates.</div>`;
+    }
 }
 
-
 /* ENTER KEY */
+document.getElementById("searchInput").addEventListener("keyup", function(e){
+    searchCandidate();
+});
 
-document
-.getElementById(
-    "searchInput"
-)
-.addEventListener(
-    "keypress",
-    function(e){
-
-        if(e.key === "Enter"){
-
-            searchCandidate();
-
-        }
-
-    }
-);
-
+loadData();
 </script>
 
 </body>

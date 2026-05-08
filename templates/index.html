@@ -1,603 +1,227 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
-<title>
-    Kerala Election 2026
-</title>
-
-<link
-    rel="stylesheet"
-    href="/static/style.css"
->
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kerala Election 2026 Live</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
 <!-- NAVBAR -->
-
 <div class="navbar">
-
-    <h2>
-        Kerala Election 2026
-    </h2>
-
+    <h2>Kerala Election 2026</h2>
     <div class="nav-links">
-
-        <a href="/">
-            Home
-        </a>
-
-        <a href="/dashboard">
-            Dashboard
-        </a>
-
-        <a href="/constituency">
-            Constituency
-        </a>
-
-        <a href="/partywise">
-            Party Wise
-        </a>
-
-        <a href="/candidates">
-            Candidates
-        </a>
-
-        <a
-            href="#"
-            onclick="toggleDark()"
-        >
-            🌙
-        </a>
-
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
     </div>
-
 </div>
-
 
 <!-- LIVE TICKER -->
-
 <div class="ticker-wrap">
-
     <div class="ticker">
-
-        🔥 Kerala Election 2026 Live Updates • UDF leading in key seats • LDF gains in central Kerala • NDA vote share rising • Live counting continues across all constituencies • Real-time election dashboard
-
+        🔥 <span class="highlight">Kerala Election 2026 Live Updates</span> • UDF leading in key seats • LDF gains in central Kerala • NDA vote share rising • Live counting continues across all constituencies • Real-time election dashboard
     </div>
-
 </div>
-
 
 <!-- BACKGROUND -->
-
 <div class="bg-animation">
-
     <span></span>
     <span></span>
     <span></span>
-    <span></span>
-    <span></span>
-
 </div>
-
 
 <!-- HERO -->
-
 <div class="hero">
-
-    <h1>
-        Kerala Election 2026
-    </h1>
-
-    <p>
-        Real-time Election Dashboard & Live Analytics
-    </p>
-
+    <h1>Kerala Election 2026</h1>
+    <p>Real-time Election Dashboard & Live Analytics</p>
     <div class="live-badge">
-
-        <span></span>
-
-        LIVE RESULTS
-
+        <span></span> LIVE RESULTS
     </div>
-
 </div>
-
 
 <!-- MAJORITY -->
-
 <div class="majority-box">
-
-    <h3>
-        Majority Mark : 71 Seats
-    </h3>
-
+    <h3>Majority Mark : 71 Seats</h3>
     <div class="majority-bar">
-
-        <div
-            class="majority-fill"
-            id="majorityFill"
-        ></div>
-
+        <div class="majority-marker"></div>
+        <div class="majority-fill" id="majorityFill"></div>
     </div>
-
-    <p id="majorityText">
-        Loading Majority Status...
-    </p>
-
+    <p id="majorityText">Loading Majority Status...</p>
 </div>
-
 
 <!-- LIVE SEATS -->
+<div class="container">
+    <div class="seat-container">
+        <!-- UDF -->
+        <div class="seat-card udf">
+            <h3>UDF</h3>
+            <h1 id="udf">0</h1>
+            <p id="udf_votes">0 Votes</p>
+        </div>
 
-<div class="seat-container">
+        <!-- LDF -->
+        <div class="seat-card ldf">
+            <h3>LDF</h3>
+            <h1 id="ldf">0</h1>
+            <p id="ldf_votes">0 Votes</p>
+        </div>
 
-    <!-- UDF -->
+        <!-- NDA -->
+        <div class="seat-card nda">
+            <h3>NDA</h3>
+            <h1 id="nda">0</h1>
+            <p id="nda_votes">0 Votes</p>
+        </div>
 
-    <div class="seat-card udf">
-
-        <h3>
-            UDF
-        </h3>
-
-        <h1 id="udf">
-            0
-        </h1>
-
-        <p id="udf_votes">
-            0 Votes
-        </p>
-
+        <!-- OTHERS -->
+        <div class="seat-card oth">
+            <h3>Others</h3>
+            <h1 id="oth">0</h1>
+            <p id="oth_votes">0 Votes</p>
+        </div>
     </div>
 
-
-    <!-- LDF -->
-
-    <div class="seat-card ldf">
-
-        <h3>
-            LDF
-        </h3>
-
-        <h1 id="ldf">
-            0
-        </h1>
-
-        <p id="ldf_votes">
-            0 Votes
-        </p>
-
+    <!-- NAVIGATION GRID -->
+    <div class="grid">
+        <a href="/dashboard" class="card">
+            <h3>📃 Full Results</h3>
+            <p>View overall constituency results</p>
+        </a>
+        <a href="/constituency" class="card">
+            <h3>📍 Constituency</h3>
+            <p>Explore constituency-wise analysis</p>
+        </a>
+        <a href="/partywise" class="card">
+            <h3>🏛️ Party Wise</h3>
+            <p>Compare party performances</p>
+        </a>
+        <a href="/candidates" class="card">
+            <h3>🔍 Candidates</h3>
+            <p>Search and track candidates</p>
+        </a>
     </div>
 
-
-    <!-- NDA -->
-
-    <div class="seat-card nda">
-
-        <h3>
-            NDA
-        </h3>
-
-        <h1 id="nda">
-            0
-        </h1>
-
-        <p id="nda_votes">
-            0 Votes
-        </p>
-
+    <!-- AUTO REFRESH -->
+    <div class="refresh-status">
+        <i>🔄</i> Auto Refreshing every 10 seconds
     </div>
 
-
-    <!-- OTHERS -->
-
-    <div class="seat-card oth">
-
-        <h3>
-            Others
-        </h3>
-
-        <h1 id="oth">
-            0
-        </h1>
-
-        <p id="oth_votes">
-            0 Votes
-        </p>
-
+    <!-- FOOTER -->
+    <div class="footer">
+        © 2026 Kerala Election Dashboard. Designed for optimal live tracking.
     </div>
-
 </div>
-
-
-<!-- NAVIGATION GRID -->
-
-<div class="grid">
-
-    <a
-        href="/dashboard"
-        class="card"
-    >
-
-        <h3>
-            📃 Full Results
-        </h3>
-
-        <p>
-            View overall constituency results
-        </p>
-
-    </a>
-
-
-    <a
-        href="/constituency"
-        class="card"
-    >
-
-        <h3>
-            📍 Constituency
-        </h3>
-
-        <p>
-            Explore constituency-wise analysis
-        </p>
-
-    </a>
-
-
-    <a
-        href="/partywise"
-        class="card"
-    >
-
-        <h3>
-            🏛️ Party Wise
-        </h3>
-
-        <p>
-            Compare party performances
-        </p>
-
-    </a>
-
-
-    <a
-        href="/candidates"
-        class="card"
-    >
-
-        <h3>
-            🔍 Candidates
-        </h3>
-
-        <p>
-            Search and track candidates
-        </p>
-
-    </a>
-
-</div>
-
-
-<!-- AUTO REFRESH -->
-
-<div class="refresh-status">
-
-    🔄 Auto Refresh Every 10 Seconds
-
-</div>
-
-
-<!-- FOOTER -->
-
-<div class="footer">
-
-    © 2026 Kerala Election Dashboard
-
-</div>
-
 
 <script>
-
-/* DARK MODE */
-
-function toggleDark(){
-
-    document.body.classList.toggle(
-        "dark"
-    );
-
-}
-
-
 /* ANIMATE COUNTER */
-
-function animateValue(
-    id,
-    start,
-    end,
-    duration
-){
-
-    let obj =
-        document.getElementById(id);
-
+function animateValue(id, start, end, duration){
+    let obj = document.getElementById(id);
     let range = end - start;
-
     let startTime = null;
 
     function step(timestamp){
-
-        if(!startTime){
-            startTime = timestamp;
-        }
-
-        let progress = Math.min(
-            (
-                timestamp - startTime
-            ) / duration,
-            1
-        );
-
-        obj.innerText = Math.floor(
-            progress * range + start
-        ).toLocaleString();
-
+        if(!startTime) startTime = timestamp;
+        let progress = Math.min((timestamp - startTime) / duration, 1);
+        obj.innerText = Math.floor(progress * range + start).toLocaleString();
         if(progress < 1){
             requestAnimationFrame(step);
         }
-
     }
-
     requestAnimationFrame(step);
-
 }
 
-
-/* PARTY → ALLIANCE */
-
+/* ALLIANCE MAPPER (Fallback) */
 function getAlliance(p){
-
     p = (p || "").toUpperCase();
-
-    if(
-        ["INC","IUML","RSP"]
-        .some(x => p.includes(x))
-    ){
-        return "UDF";
-    }
-
-    if(
-        ["CPM","CPI"]
-        .some(x => p.includes(x))
-    ){
-        return "LDF";
-    }
-
-    if(
-        ["BJP","BDJS"]
-        .some(x => p.includes(x))
-    ){
-        return "NDA";
-    }
-
+    if(["INC","IUML","RSP"].some(x => p.includes(x))) return "UDF";
+    if(["CPM","CPI"].some(x => p.includes(x))) return "LDF";
+    if(["BJP","BDJS"].some(x => p.includes(x))) return "NDA";
     return "Others";
-
 }
-
 
 /* LOAD SUMMARY */
-
 async function loadSummary(){
-
-    try{
-
-        let res = await fetch(
-            "/api/results"
-        );
-
+    try {
+        let res = await fetch("/api/results");
         let json = await res.json();
-
-        let results =
-            json.data || [];
+        let results = json.data || [];
 
         let summary = {
-
-            UDF:{
-                seats:0,
-                votes:0
-            },
-
-            LDF:{
-                seats:0,
-                votes:0
-            },
-
-            NDA:{
-                seats:0,
-                votes:0
-            },
-
-            Others:{
-                seats:0,
-                votes:0
-            }
-
+            UDF: { seats: 0, votes: 0 },
+            LDF: { seats: 0, votes: 0 },
+            NDA: { seats: 0, votes: 0 },
+            Others: { seats: 0, votes: 0 }
         };
 
         let totalVotes = 0;
 
-
-        /* PROCESS */
-
         results.forEach(r => {
+            // Using the alliance given by API or fall back
+            let alliance = r.alliance ? r.alliance.toUpperCase() : getAlliance(r.party);
+            if (!summary[alliance]) alliance = "Others";
 
-            let alliance =
-                getAlliance(
-                    r.Party
-                );
-
-            let votes =
-                parseInt(
-                    r.Votes || 0
-                );
-
-            let status =
-                (
-                    r.Status || ""
-                ).toLowerCase();
-
+            let votes = parseInt(r.votes || 0);
             summary[alliance].votes += votes;
-
             totalVotes += votes;
 
-            if(
-                status.includes("won")
-                ||
-                status.includes("lead")
-            ){
+            let status = (r.status || "").toLowerCase();
+            if (status === "won" || status === "lead") {
                 summary[alliance].seats++;
             }
-
         });
-
 
         /* UPDATE UI */
+        ["UDF","LDF","NDA","Others"].forEach(key => {
+            let seats = summary[key].seats;
+            let votes = summary[key].votes;
+            let percent = totalVotes ? ((votes / totalVotes) * 100).toFixed(1) : 0;
 
-        ["UDF","LDF","NDA","Others"]
-        .forEach(key => {
-
-            let seats =
-                summary[key].seats;
-
-            let votes =
-                summary[key].votes;
-
-            let percent =
-                totalVotes
-                ?
-                (
-                    (
-                        votes /
-                        totalVotes
-                    ) * 100
-                ).toFixed(1)
-                :
-                0;
-
-            animateValue(
-                key.toLowerCase(),
-                0,
-                seats,
-                1000
-            );
-
-            document.getElementById(
-                key.toLowerCase()
-                + "_votes"
-            ).innerText =
-
-                Number(votes)
-                .toLocaleString()
-
-                +
-
-                " Votes (" +
-
-                percent +
-
-                "%)";
-
-        });
-
-
-        /* MAJORITY */
-
-        let majorityLeader = "LDF";
-
-        let maxSeats = 0;
-
-        Object.keys(summary)
-        .forEach(key => {
-
-            if(
-                summary[key].seats
-                >
-                maxSeats
-            ){
-
-                maxSeats =
-                    summary[key].seats;
-
-                majorityLeader = key;
-
+            let prevText = document.getElementById(key.toLowerCase()).innerText;
+            if (parseInt(prevText.replace(/,/g, '')) !== seats) {
+                animateValue(key.toLowerCase(), parseInt(prevText.replace(/,/g, '') || 0), seats, 1000);
             }
 
+            document.getElementById(key.toLowerCase() + "_votes").innerText = 
+                Number(votes).toLocaleString() + " Votes (" + percent + "%)";
         });
 
-        let majorityPercent =
-            (maxSeats / 71) * 100;
+        /* MAJORITY */
+        let majorityLeader = "LDF";
+        let maxSeats = 0;
 
-        if(majorityPercent > 100){
-            majorityPercent = 100;
-        }
+        Object.keys(summary).forEach(key => {
+            if (summary[key].seats > maxSeats) {
+                maxSeats = summary[key].seats;
+                majorityLeader = key;
+            }
+        });
 
-        document
-        .getElementById(
-            "majorityFill"
-        )
-        .style.width =
-            majorityPercent + "%";
+        let majorityPercent = (maxSeats / 140) * 100;
+        if(majorityPercent > 100) majorityPercent = 100;
 
-        document
-        .getElementById(
-            "majorityText"
-        )
-        .innerText =
+        document.getElementById("majorityFill").style.width = majorityPercent + "%";
+        
+        let text = maxSeats >= 71 
+            ? `${majorityLeader} cross majority with ${maxSeats} seats!`
+            : `${majorityLeader} leading with ${maxSeats} seats`;
+            
+        document.getElementById("majorityText").innerText = text;
 
-            majorityLeader +
-
-            " leading with " +
-
-            maxSeats +
-
-            " seats";
-
-
-    }
-
-    catch(err){
-
+    } catch(err) {
         console.log(err);
-
     }
-
 }
 
-
 /* AUTO REFRESH */
-
-setInterval(
-    loadSummary,
-    10000
-);
-
+setInterval(loadSummary, 10000);
 
 /* INITIAL LOAD */
-
 loadSummary();
-
 </script>
 
 </body>

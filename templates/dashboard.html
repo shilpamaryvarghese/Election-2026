@@ -1,480 +1,176 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
-<title>
-    Live Election Dashboard
-</title>
-
-<link
-    rel="stylesheet"
-    href="/static/style.css"
->
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Election Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
 <!-- NAVBAR -->
-
 <div class="navbar">
-
-    <h2>
-        Kerala Election 2026
-    </h2>
-
+    <h2>Kerala Election 2026</h2>
     <div class="nav-links">
-
-        <a href="/">
-            Home
-        </a>
-
-        <a href="/dashboard">
-            Dashboard
-        </a>
-
-        <a href="/constituency">
-            Constituency
-        </a>
-
-        <a href="/partywise">
-            Party Wise
-        </a>
-
-        <a href="/candidates">
-            Candidates
-        </a>
-
+        <a href="/">Home</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/constituency">Constituency</a>
+        <a href="/partywise">Party Wise</a>
+        <a href="/candidates">Candidates</a>
     </div>
-
 </div>
-
 
 <!-- BACKGROUND -->
-
 <div class="bg-animation">
-
     <span></span>
     <span></span>
     <span></span>
-    <span></span>
-    <span></span>
-
 </div>
-
 
 <!-- CONTAINER -->
-
 <div class="container">
-
-    <h1 class="page-title">
-        📊 Live Election Dashboard
-    </h1>
-
-    <p class="subtitle">
-        Kerala Election 2026 Candidate Results
-    </p>
-
+    <h1 class="page-title">📊 Live Election Dashboard</h1>
+    <p class="subtitle">Kerala Election 2026 Candidate Results</p>
 
     <!-- SEARCH -->
-
     <div class="search-area">
-
-        <input
-            type="text"
-            id="search"
-            placeholder="Search constituency, candidate or alliance..."
-        >
-
+        <input type="text" id="search" placeholder="Search constituency, candidate or alliance...">
     </div>
-
 
     <!-- LIVE STATS -->
-
     <div class="seat-container">
-
         <div class="seat-card udf">
-
-            <h3>
-                Total Candidates
-            </h3>
-
-            <h1 id="totalCandidates">
-                0
-            </h1>
-
+            <h3>Total Candidates</h3>
+            <h1 id="totalCandidates">0</h1>
         </div>
-
-
         <div class="seat-card ldf">
-
-            <h3>
-                Total Votes
-            </h3>
-
-            <h1 id="totalVotes">
-                0
-            </h1>
-
+            <h3>Total Votes</h3>
+            <h1 id="totalVotes">0</h1>
         </div>
-
-
         <div class="seat-card nda">
-
-            <h3>
-                UDF Candidates
-            </h3>
-
-            <h1 id="udfCount">
-                0
-            </h1>
-
+            <h3>UDF Candidates</h3>
+            <h1 id="udfCount">0</h1>
         </div>
-
-
         <div class="seat-card oth">
-
-            <h3>
-                LDF Candidates
-            </h3>
-
-            <h1 id="ldfCount">
-                0
-            </h1>
-
+            <h3>LDF Candidates</h3>
+            <h1 id="ldfCount">0</h1>
         </div>
-
     </div>
-
 
     <!-- TABLE -->
-
-    <div class="table-box">
-
+    <div class="table-box table-responsive">
         <table>
-
             <thead>
-
                 <tr>
-
-                    <th>
-                        Constituency
-                    </th>
-
-                    <th>
-                        Candidate
-                    </th>
-
-                    <th>
-                        Alliance
-                    </th>
-
-                    <th>
-                        Votes
-                    </th>
-
+                    <th>Constituency</th>
+                    <th>Candidate</th>
+                    <th>Alliance</th>
+                    <th>Votes</th>
                 </tr>
-
             </thead>
-
             <tbody id="body"></tbody>
-
         </table>
-
     </div>
 
+    <div class="refresh-status">
+        <i>🔄</i> Auto Refreshing every 15 seconds
+    </div>
 </div>
 
-
 <script>
-
 let fullData = [];
 
-
-/* LOAD DATA */
-
-async function loadData(){
-
-    try{
-
-        let res = await fetch(
-            "/api/results"
-        );
-
-        let json = await res.json();
-
-        fullData = json.data || [];
-
-        renderTable(fullData);
-
-        updateStats(fullData);
-
-    }
-
-    catch(err){
-
-        console.log(err);
-
-    }
-
-}
-
-loadData();
-
-
 /* ALLIANCE COLORS */
-
 function getColor(alliance){
-
-    alliance =
-        (alliance || "")
-        .toUpperCase();
-
-    if(alliance.includes("UDF")){
-        return "#2563eb";
-    }
-
-    if(alliance.includes("LDF")){
-        return "#dc2626";
-    }
-
-    if(alliance.includes("NDA")){
-        return "#f59e0b";
-    }
-
-    return "#64748b";
-
+    alliance = (alliance || "").toUpperCase();
+    if(alliance.includes("UDF")) return "#3b82f6";
+    if(alliance.includes("LDF")) return "#ef4444";
+    if(alliance.includes("NDA")) return "#f59e0b";
+    return "#94a3b8";
 }
 
-
-/* TABLE */
-
+/* TABLE RENDERING */
 function renderTable(data){
-
-    let tbody =
-        document.getElementById(
-            "body"
-        );
-
+    let tbody = document.getElementById("body");
     tbody.innerHTML = "";
 
-
     data.forEach(r => {
-
-        let constituency =
-            r.constituency_Name
-            ||
-            "-";
-
-        let candidate =
-            r.name
-            ||
-            "-";
-
-        let alliance =
-            r.alliance
-            ||
-            "-";
-
-        let votes =
-            parseInt(
-                r.votes || 0
-            );
-
-        let color =
-            getColor(alliance);
-
+        let constituency = r.constituency || "-";
+        let candidate = r.candidate || "-";
+        let alliance = r.alliance || "-";
+        let votes = parseInt(r.votes || 0);
+        let color = getColor(alliance);
+        let rowClass = (r.status === "Won" || r.status === "Lead") ? "winner-row" : "";
 
         tbody.innerHTML += `
-
-        <tr>
-
-            <td>
-
-                ${constituency}
-
-            </td>
-
-            <td>
-
-                <strong>
-
-                    ${candidate}
-
-                </strong>
-
-            </td>
-
-            <td>
-
-                <span
-                    style="
-                        color:${color};
-                        font-weight:700;
-                    "
-                >
-
-                    ${alliance}
-
-                </span>
-
-            </td>
-
-            <td>
-
-                ${votes.toLocaleString()}
-
-            </td>
-
+        <tr class="${rowClass}">
+            <td>${constituency}</td>
+            <td><strong>${candidate}</strong></td>
+            <td><span style="color:${color}; font-weight:700;">${alliance}</span></td>
+            <td>${votes.toLocaleString()}</td>
         </tr>
-
         `;
-
     });
-
 }
-
 
 /* LIVE STATS */
-
 function updateStats(data){
-
-    let totalCandidates =
-        data.length;
-
+    let totalCandidates = data.length;
     let totalVotes = 0;
-
     let udf = 0;
-
     let ldf = 0;
 
-
     data.forEach(r => {
-
-        totalVotes += parseInt(
-            r.votes || 0
-        );
-
-        let alliance =
-            (
-                r.alliance || ""
-            ).toUpperCase();
-
-        if(
-            alliance.includes("UDF")
-        ){
-            udf++;
-        }
-
-        if(
-            alliance.includes("LDF")
-        ){
-            ldf++;
-        }
-
+        totalVotes += parseInt(r.votes || 0);
+        let alliance = (r.alliance || "").toUpperCase();
+        if(alliance.includes("UDF")) udf++;
+        if(alliance.includes("LDF")) ldf++;
     });
 
-
-    document
-    .getElementById(
-        "totalCandidates"
-    )
-    .innerText =
-        totalCandidates;
-
-
-    document
-    .getElementById(
-        "totalVotes"
-    )
-    .innerText =
-        totalVotes
-        .toLocaleString();
-
-
-    document
-    .getElementById(
-        "udfCount"
-    )
-    .innerText = udf;
-
-
-    document
-    .getElementById(
-        "ldfCount"
-    )
-    .innerText = ldf;
-
+    document.getElementById("totalCandidates").innerText = totalCandidates;
+    document.getElementById("totalVotes").innerText = totalVotes.toLocaleString();
+    document.getElementById("udfCount").innerText = udf;
+    document.getElementById("ldfCount").innerText = ldf;
 }
 
-
-/* SEARCH */
-
-document
-.getElementById(
-    "search"
-)
-.addEventListener(
-    "keyup",
-    function(){
-
-        let value =
-            this.value
-            .toLowerCase();
-
-        let filtered =
-
-            fullData.filter(r =>
-
-                (
-                    r.constituency_Name
-                    || ""
-                )
-                .toLowerCase()
-                .includes(value)
-
-                ||
-
-                (
-                    r.name
-                    || ""
-                )
-                .toLowerCase()
-                .includes(value)
-
-                ||
-
-                (
-                    r.alliance
-                    || ""
-                )
-                .toLowerCase()
-                .includes(value)
-
-            );
-
-        renderTable(filtered);
-
+/* LOAD DATA */
+async function loadData(){
+    try{
+        let res = await fetch("/api/results");
+        let json = await res.json();
+        fullData = json.data || [];
+        
+        let searchValue = document.getElementById("search").value.toLowerCase();
+        if(searchValue) {
+            filterData(searchValue);
+        } else {
+            renderTable(fullData);
+        }
+        updateStats(fullData);
+    } catch(err) {
+        console.log(err);
     }
-);
+}
 
+/* FILTER DATA */
+function filterData(value) {
+    let filtered = fullData.filter(r =>
+        (r.constituency || "").toLowerCase().includes(value) ||
+        (r.candidate || "").toLowerCase().includes(value) ||
+        (r.alliance || "").toLowerCase().includes(value)
+    );
+    renderTable(filtered);
+}
 
-/* AUTO REFRESH */
+/* SEARCH EVENT */
+document.getElementById("search").addEventListener("keyup", function(){
+    filterData(this.value.toLowerCase());
+});
 
-setInterval(
-    loadData,
-    15000
-);
+loadData();
+setInterval(loadData, 15000);
 
 </script>
-
 </body>
 </html>
